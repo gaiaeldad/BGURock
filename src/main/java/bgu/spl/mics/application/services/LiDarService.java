@@ -30,5 +30,13 @@ public class LiDarService extends MicroService {
     @Override
     protected void initialize() {
         // TODO Implement this
+    subscribeEvent(DetectObjectsEvent.class, (event) -> {
+        TrackedObjectsEvent result = processDetectObjects(event);
+        complete(event, result);
+    });
+    subscribeBroadcast(TickBroadcast.class, (broadcast) -> {
+        updateState(broadcast);
+    });
+}
     }
 }
