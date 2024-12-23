@@ -6,7 +6,7 @@ import bgu.spl.mics.MicroService;
  * LiDarService is responsible for processing data from the LiDAR sensor and
  * sending TrackedObjectsEvents to the FusionSLAM service.
  * 
- * This service interacts with the LiDarTracker object to retrieve and process
+ * This service interacts with the LiDarWorkerTracker object to retrieve and process
  * cloud point data and updates the system's StatisticalFolder upon sending its
  * observations.
  */
@@ -15,9 +15,9 @@ public class LiDarService extends MicroService {
     /**
      * Constructor for LiDarService.
      *
-     * @param liDarTracker The LiDAR tracker object that this service will use to process data.
+     * @param LiDarWorkerTracker A LiDAR Tracker worker object that this service will use to process data.
      */
-    public LiDarService(LiDarTracker liDarTracker) {
+    public LiDarService(LiDarWorkerTracker LiDarWorkerTracker) {
         super("Change_This_Name");
         // TODO Implement this
     }
@@ -30,13 +30,5 @@ public class LiDarService extends MicroService {
     @Override
     protected void initialize() {
         // TODO Implement this
-    subscribeEvent(DetectObjectsEvent.class, (event) -> {
-        TrackedObjectsEvent result = processDetectObjects(event);
-        complete(event, result);
-    });
-    subscribeBroadcast(TickBroadcast.class, (broadcast) -> {
-        updateState(broadcast);
-    });
-}
     }
 }
