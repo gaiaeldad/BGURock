@@ -1,6 +1,5 @@
 package bgu.spl.mics.application.objects;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,9 +26,6 @@ public class StampedDetectedObject {
     }
 
     public void addDetectedObject(DetectedObject detectedObject) {
-        if (this.detectedObjects == null) {
-            this.detectedObjects = new ArrayList<>();
-        }
         this.detectedObjects.add(detectedObject);
     }
 /* 
