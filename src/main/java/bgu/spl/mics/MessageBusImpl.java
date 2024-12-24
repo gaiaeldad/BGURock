@@ -12,8 +12,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * Only private fields and methods can be added to this class.
  */
     public class MessageBusImpl implements MessageBus {
-        private final Lock EventLock = new ReentrantLock();
-        private final Lock BroadcastLock = new ReentrantLock();
         private final Map<Class<? extends Event<?>>, Queue<MicroService>> eventSubscribers = new ConcurrentHashMap<>();
         private final Map<Class<? extends Broadcast>, List<MicroService>> broadcastSubscribers = new ConcurrentHashMap<>();
         private final Map<Event<?>, Future<?>> eventFutures = new ConcurrentHashMap<>();
@@ -31,20 +29,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
         @Override
         public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-                eventSubscribers.putIfAbsent(type, new LinkedList<>());
-                Queue <MicroService> subscribers = eventSubscribers.get(type);
-            if (!subscribers.contains(m)) {
+            eventSubscribers.putIfAbsent(type, new LinkedList<>());
+            Queue <MicroService> subscribers = eventSubscribers.get(type);
+            synchronized(subscribers){
                 subscribers.add(m);
             }
         }
 
         @Override
         public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-                broadcastSubscribers.putIfAbsent(type, new ArrayList<>());
-                List<MicroService> subscribers = broadcastSubscribers.get(type);
-            if (!subscribers.contains(m)) {
-                subscribers.add(m);
-            }
+            broadcastSubscribers.putIfAbsent(type, new ArrayList<>());
+            List<MicroService> subscribers = broadcastSubscribers.get(type);
+            subscribers.add(m);
+            
         }
 
         
@@ -68,12 +65,13 @@ import java.util.concurrent.locks.ReentrantLock;
          */
         @Override
         public <T> void complete(Event<T> e, T result) {
-            Future<?> rawFuture = eventFutures.get(e);
-            if (rawFuture != null) {
-                Future<T> future = (Future<T>) rawFuture; // Casting ל-Future<T>
+            @SuppressWarnings("unchecked")
+            Future<T> future = (Future<T>) eventFutures.get(e);
+            if (future != null) {
                 future.setResult(result); // עדכון התוצאה
             }
         }
+        
 
         @Override
         public void sendBroadcast(Broadcast b) {
@@ -104,14 +102,17 @@ import java.util.concurrent.locks.ReentrantLock;
             // בודק אם יש מנויים לאירוע מסוג זה
             Queue <MicroService> subscribers = eventSubscribers.get(e.getClass());
             // אם אין מנויים, מחזיר null
-            if (subscribers == null || subscribers.isEmpty()) {
-                return null;
-            }
+            MicroService selectedService;
+            synchronized(subscribers){
+                if (subscribers == null || subscribers.isEmpty()) {
+                    return null;
+                }
 
-            // בוחר מיקרו-שירות לשלוח אליו את האירוע (בחרנו כאן את הראשון ברשימה)
-            MicroService selectedService = subscribers.poll(); // במימוש זה, בחרנו את המיקרו-שירות הראשון
-            if (selectedService != null) {
-                subscribers.add(selectedService); // מעביר אותו לסוף התור
+                // בוחר מיקרו-שירות לשלוח אליו את האירוע (בחרנו כאן את הראשון ברשימה)
+                selectedService = subscribers.poll(); // במימוש זה, בחרנו את המיקרו-שירות הראשון
+                if (selectedService != null) {
+                    subscribers.add(selectedService); // מעביר אותו לסוף התור
+                }
             }
             Future<T> future = new Future<>();
             
@@ -140,7 +141,9 @@ import java.util.concurrent.locks.ReentrantLock;
                     microServiceBroadcastQueues.remove(m); 
                 }
                 for (Queue <MicroService> subscribers : eventSubscribers.values()) {
-                    subscribers.remove(m);
+                    synchronized(subscribers){
+                        subscribers.remove(m);
+                    }
                 }
                 for (List<MicroService> subscribers : broadcastSubscribers.values()) {
                     subscribers.remove(m);
@@ -161,17 +164,11 @@ import java.util.concurrent.locks.ReentrantLock;
                 if (broadcastMessage != null) {
                     return broadcastMessage;
                 }
-                while (true) {
-                    Message eventMessage = eventQueue.poll();
-                    if (eventMessage != null) {
-                        return eventMessage;
-                    }
-        
-                    // אם שני התורים ריקים, מבצע המתנה קצרה
-                    wait(); ////////לבדוק מי מעיר אותו
-                    // חוזר לבדוק שוב את תור ה-Broadcast
-                    break;
+                Message eventMessage = eventQueue.poll();
+                if (eventMessage != null) {
+                    return eventMessage;
                 }
+                Thread.sleep(100); //לבדוק
             }
         
         }
