@@ -75,4 +75,13 @@ public class Future<T> {
             return result; // Return the resolved result.
         }
     }
+    public void setResult(T result) {
+        this.result = result;
+        setIsResolved(true);
+    }
+
+    // עדכון מצב ה-"הושלם"
+    public void setIsResolved(boolean isResolved) {
+        this.isResolved = isResolved;
+    }
 }
