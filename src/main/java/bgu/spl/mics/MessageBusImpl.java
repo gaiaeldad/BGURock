@@ -134,12 +134,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
         @Override
         public void unregister(MicroService m) {
-                if (microServiceEventQueues.containsKey(m)) {
-                    microServiceEventQueues.remove(m); 
-                }
-                if (microServiceBroadcastQueues.containsKey(m)) {
-                    microServiceBroadcastQueues.remove(m); 
-                }
+                microServiceEventQueues.remove(m); 
+                microServiceBroadcastQueues.remove(m); 
                 for (Queue <MicroService> subscribers : eventSubscribers.values()) {
                     synchronized(subscribers){
                         subscribers.remove(m);
@@ -158,7 +154,6 @@ import java.util.concurrent.locks.ReentrantLock;
         public Message awaitMessage(MicroService m) throws InterruptedException {
             BlockingQueue<Message> eventQueue = microServiceEventQueues.get(m);
             BlockingQueue<Message> broadcastQueue = microServiceBroadcastQueues.get(m);
-        
             while (true) {
                 Message broadcastMessage = broadcastQueue.poll();
                 if (broadcastMessage != null) {
