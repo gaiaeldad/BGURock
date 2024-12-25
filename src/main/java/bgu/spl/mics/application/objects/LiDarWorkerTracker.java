@@ -18,7 +18,7 @@ public class LiDarWorkerTracker {
         this.id = id;
         this.frequency = frequency;
         this.status = status;
-        this.lastTrackedObjects = lastTrackedObjects;
+        this.lastTrackedObjects = lastTrackedObjects;//do we need this or emtpy 
     }
     public LiDarWorkerTracker(int id, int frequency, String statusString, List<TrackedObject> lastTrackedObjects) {
         this.id = id;
@@ -50,7 +50,6 @@ public class LiDarWorkerTracker {
     // Method to add a new TrackedObject to lastTrackedObjects list
     public void addTrackedObject(TrackedObject trackedObject) {
         this.lastTrackedObjects.add(trackedObject);
-        StatisticalFolder.getInstance().updateNumTrackedObjects(1);  // Update the statistics
     }
 /* 
     public void setId(int id) {

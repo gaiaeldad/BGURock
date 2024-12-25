@@ -1,13 +1,13 @@
 package bgu.spl.mics.application.services;
 
 import java.util.List;
-
 import bgu.spl.mics.Broadcast;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.DetectObjectsEvent;
+import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
 import bgu.spl.mics.application.objects.Camera;
-import bgu.spl.mics.application.objects.DetectedObject;
+import bgu.spl.mics.application.objects.StampedDetectedObject;
 import bgu.spl.mics.application.objects.STATUS;
 import bgu.spl.mics.application.objects.StatisticalFolder;
 
@@ -43,24 +43,27 @@ public class CameraService extends MicroService {
             int currentTime = broadcast.getTime();
 
             // Check if the camera is active and it's time to send an event
-            if (camera.getStatus() == STATUS.UP && currentTime % camera.getFrequency() == 0) {
-                List<DetectedObject> detectedObjects = camera.detectObject(currentTime);
+            if (camera.getStatus() == STATUS.UP) {
+                StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime + camera.getFrequency());
 
-                if (detectedObjects != null && !detectedObjects.isEmpty()) {
-                    DetectObjectsEvent event = new DetectObjectsEvent(detectedObjects, currentTime);
+                if (detectedObject != null) {
+                    DetectObjectsEvent event = new DetectObjectsEvent(detectedObject, getName());
                     sendEvent(event);
 
                     // Update the statistical folder
-                    StatisticalFolder.getInstance().updateNumDetectedObjects(detectedObjects.size());
+                    StatisticalFolder.getInstance().updateNumDetectedObjects(1); 
                 }
             }
         });
-
+//--------------------------------------לבדוק------------------------------------------------------------
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             terminate();
         });
+        // Subscribe to TerminatedBroadcast
+        subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
+            terminate();// צריך לעשות גם לקראש
+        });
+        
     }
-
-
 }

@@ -49,9 +49,18 @@ public class Camera {
     // Method to simulate the camera detecting an object and adding it to the list.
     public void detectObject(StampedDetectedObject detectedObject) {
         detectedObjectsList.add(detectedObject);
-        StatisticalFolder.getInstance().updateNumDetectedObjects(1);  // Update the statistics
-
     }
+
+    public StampedDetectedObject getDetectedObjectsAtTime(int time) {
+        for (StampedDetectedObject stampedObject : detectedObjectsList) {
+            if (stampedObject.getTime() == time) {
+                return stampedObject;
+            }
+        }
+        return null; // Return an empty list if no objects were detected at the given time
+    }
+    
+    
 
     // Method to simulate the camera sending events.
     // אנחנו צריכים או שזה  callback?
