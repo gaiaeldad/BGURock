@@ -12,7 +12,7 @@ public class ExampleBroadcastListenerService extends MicroService {
 
         if (args.length != 1) {
             throw new IllegalArgumentException("Listener expecting a single argument: mbt (the number of requests to answer before termination)");
-        }
+        } 
 
         try {
             mbt = Integer.parseInt(args[0]);
