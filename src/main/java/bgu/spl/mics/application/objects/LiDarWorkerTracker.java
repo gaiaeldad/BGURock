@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -8,64 +9,86 @@ import java.util.List;
  */
 public class LiDarWorkerTracker {
 
-    private int id;  // The ID of the LiDar worker
-    private int frequency;  // The frequency at which the LiDar sends new events
-    private STATUS status;  // The status of the LiDar (Up, Down, Error)
-    private List<TrackedObject> lastTrackedObjects;  // The list of last tracked objects
+    private int id;
+    private int frequency;
+    private STATUS status;
+    private List<TrackedObject> lastTrackedObjects;
+    private LiDarDataBase liDarDataBase; // Instance of LiDarDataBase
+    private int currentTick = 0;
+    private int maxTime;
 
     // Constructor to initialize the LiDarWorkerTracker object.
-    public LiDarWorkerTracker(int id, int frequency, STATUS status, List<TrackedObject> lastTrackedObjects) {
+    public LiDarWorkerTracker(int id, int frequency, String lidarDataFilePath) {
         this.id = id;
         this.frequency = frequency;
-        this.status = status;
-        this.lastTrackedObjects = lastTrackedObjects;//do we need this or emtpy 
-    }
-    public LiDarWorkerTracker(int id, int frequency, String statusString, List<TrackedObject> lastTrackedObjects) {
-        this.id = id;
-        this.frequency = frequency;
-        this.status = STATUS.fromString(statusString); // Convert the string to the corresponding Status
-        this.lastTrackedObjects = lastTrackedObjects;
+        this.status = STATUS.UP;
+        this.lastTrackedObjects = new ArrayList<>();
+        this.liDarDataBase = LiDarDataBase.getInstance(lidarDataFilePath); // Initialize the singleton instance
+        this.maxTime = calculateMaxTime(); // Calculate the maximum time from the database
     }
 
-    // Getter and Setter for id
     public int getId() {
         return id;
     }
 
-    // Getter and Setter for frequency
     public int getFrequency() {
         return frequency;
     }
 
-    // Getter and Setter for status
-    public STATUS  getStatus() {
+    public STATUS getStatus() {
         return status;
     }
 
-    // Getter and Setter for lastTrackedObjects
+    public void setStatus(STATUS status) {
+        this.status = status;
+    }
+
     public List<TrackedObject> getLastTrackedObjects() {
         return lastTrackedObjects;
     }
 
-    // Method to add a new TrackedObject to lastTrackedObjects list
-    public void addTrackedObject(TrackedObject trackedObject) {
-        this.lastTrackedObjects.add(trackedObject);
+    public List<StampedCloudPoints> getLiDarData() {
+        return liDarDataBase.getCloudPoints();
     }
-/* 
-    public void setId(int id) {
-        this.id = id;
+
+    public List<CloudPoint> getCoordinates(String id, int time) {
+        List<StampedCloudPoints> cloudPointsList = liDarDataBase.getCloudPoints();
+        for (StampedCloudPoints stampedCloudPoints : cloudPointsList) {
+            if (stampedCloudPoints.getId().equals(id) && stampedCloudPoints.getTime() == time) {
+                return stampedCloudPoints.getCloudPoints();
+            }
+        }
+        return new ArrayList<>(); // Return an empty list if no match is found
     }
-    public void setFrequency(int frequency) {
-        this.frequency = frequency;
+
+    public List<TrackedObject> prosseingEvent(StampedDetectedObject stampedDetectedObjects) {
+        this.lastTrackedObjects = new ArrayList<>();
+        int detectionTime = stampedDetectedObjects.getTime();//לבדוק זמנים
+        int processingTime = detectionTime + this.frequency;
+        if (currentTick >= processingTime) { // Ensure the current tick aligns with the LiDAR worker's processing time
+            List<DetectedObject> detectedObjects = stampedDetectedObjects.getDetectedObjects();
+
+            for (DetectedObject detectedObject : detectedObjects) {
+                TrackedObject trackedObject = new TrackedObject(
+                    detectedObject.getId(),
+                    detectionTime,//לבדוק זמנים
+                    detectedObject.getDescription(),
+                    getCoordinates(detectedObject.getId(), processingTime)//לבדוק זמנים
+                );
+                lastTrackedObjects.add(trackedObject);
+            }
+        }
+        return lastTrackedObjects;
     }
-    public void setStatus(Status status) {
-        this.status = status;
+
+    public void updateTick(int time) {
+        this.currentTick = time;
+        if (currentTick >= maxTime) {
+            this.status = STATUS.DOWN;
+        }
     }
-    public void setStatus(String statusString) {
-        this.status = STATUS.fromString(statusString);  // Use the helper method to set the status
+
+    private int calculateMaxTime() {
+        return liDarDataBase.getCloudPoints().stream().mapToInt(StampedCloudPoints::getTime).max().orElse(0); // Default to 0 if no data exists
     }
-    public void setLastTrackedObjects(List<TrackedObject> lastTrackedObjects) {
-        this.lastTrackedObjects = lastTrackedObjects;
-    }
-*/
 }

@@ -27,7 +27,7 @@ public class CameraService extends MicroService {
      * @param camera The Camera object that this service will use to detect objects.
      */
     public CameraService(Camera camera) {
-        super("CameraService");
+        super("CameraService" + camera.getId());
         this.camera = camera;
     }
 
@@ -43,6 +43,7 @@ public class CameraService extends MicroService {
             int currentTime = broadcast.getTime();
 
             // Check if the camera is active and it's time to send an event
+            //--------------------לוודא את עניין הזמנים שוב
             if (camera.getStatus() == STATUS.UP) {
                 StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime + camera.getFrequency());
 
@@ -53,6 +54,10 @@ public class CameraService extends MicroService {
                     // Update the statistical folder
                     StatisticalFolder.getInstance().updateNumDetectedObjects(1); 
                 }
+            }
+            else {
+                terminate();
+                sendBroadcast(new TerminatedBroadcast(getName()));     
             }
         });
 //--------------------------------------לבדוק------------------------------------------------------------

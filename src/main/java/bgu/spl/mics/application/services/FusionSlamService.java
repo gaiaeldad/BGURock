@@ -1,33 +1,60 @@
 package bgu.spl.mics.application.services;
 
-import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.objects.FusionSlam;
+import bgu.spl.mics.*;
+import bgu.spl.mics.application.objects.*;
+import bgu.spl.mics.application.messages.*;
 
 /**
  * FusionSlamService integrates data from multiple sensors to build and update
  * the robot's global map.
- * 
- * This service receives TrackedObjectsEvents from LiDAR workers and PoseEvents from the PoseService,
- * transforming and updating the map with new landmarks.
  */
 public class FusionSlamService extends MicroService {
+    private final FusionSlam fusionSlam;
+
     /**
      * Constructor for FusionSlamService.
      *
      * @param fusionSlam The FusionSLAM object responsible for managing the global map.
      */
     public FusionSlamService(FusionSlam fusionSlam) {
-        super("Change_This_Name");
-        // TODO Implement this
+        super("FusionSlamService");
+        this.fusionSlam = fusionSlam;
     }
 
     /**
      * Initializes the FusionSlamService.
-     * Registers the service to handle TrackedObjectsEvents, PoseEvents, and TickBroadcasts,
-     * and sets up callbacks for updating the global map.
+     * Registers the service to handle events and broadcasts.
      */
     @Override
     protected void initialize() {
-        // TODO Implement this
+        // Register for TrackedObjectsEvent
+        subscribeEvent(TrackedObjectsEvent.class, event -> {
+            fusionSlam.processTrackedObjects(event.getTrackedObjects());
+            complete(event, null);
+        });
+
+        // Register for PoseEvent
+        subscribeEvent(PoseEvent.class, event -> {
+            fusionSlam.updatePose(event.getPose());
+            complete(event, null);
+        });
+
+        // Register for TickBroadcast
+        subscribeBroadcast(TickBroadcast.class, broadcast -> {
+            if (broadcast.isFinalTick()) {
+                terminate();
+            }
+            ////-------לבדוק אם צריך לעדכן זמנים כי פיוזן סלאם לא מתשתשת בזמן ולבדוק final tick
+        });
+
+        // Register for TerminatedBroadcast
+        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
+            terminate();
+        });
+
+        // Register for CrashedBroadcast
+        subscribeBroadcast(CrashedBroadcast.class, broadcast -> {
+            terminate();
+        });
     }
 }

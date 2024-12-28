@@ -3,18 +3,13 @@ package bgu.spl.mics.application.messages;
 import bgu.spl.mics.Broadcast;
 
 public class TerminatedBroadcast implements Broadcast{    
-    private final String serviceName;
-    private String senderId;
+    private String senderName;
 
 
-    public TerminatedBroadcast(String serviceName, String senderId) {
-        this.serviceName = serviceName;
-        this.senderId = senderId;
-    }
-    public String getServiceName() {
-        return serviceName;
+    public TerminatedBroadcast(String senderName) {
+        this.senderName = senderName;
     }
     public String getSenderId() {
-        return senderId;
+        return senderName;
     }
 }

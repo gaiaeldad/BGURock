@@ -85,9 +85,21 @@ public class FusionSlam {
 
             updatedCoordinates.add(new CloudPoint(avgX, avgY));
         }
+
+        // Add any remaining points from newCoordinates
+        if (newCoordinates.size() > existingCoordinates.size()) {
+            updatedCoordinates.addAll(newCoordinates.subList(size, newCoordinates.size()));
+        }
+
+        // Add any remaining points from existingCoordinates
+        if (existingCoordinates.size() > newCoordinates.size()) {
+            updatedCoordinates.addAll(existingCoordinates.subList(size, existingCoordinates.size()));
+        }
+
         existingCoordinates.clear();
         existingCoordinates.addAll(updatedCoordinates);
     }
+
 
     /**
      * Finds a landmark by its ID.
@@ -111,7 +123,7 @@ public class FusionSlam {
      * @param pose             The current pose of the robot.
      * @return A list of transformed global coordinates.
      */
-    private List<CloudPoint> transformToGlobal(CloudPoint[] localCoordinates, Pose pose) {
+    private List<CloudPoint> transformToGlobal(List<CloudPoint> localCoordinates, Pose pose) {
         List<CloudPoint> globalCoordinates = new ArrayList<>();
 
         double yawRadians = Math.toRadians(pose.getYaw());

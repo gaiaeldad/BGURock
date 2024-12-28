@@ -10,78 +10,79 @@ import java.util.concurrent.TimeUnit;
  * Only private methods may be added to this class.
  * No public constructor is allowed except for the empty constructor.
  */
+
 public class Future<T> {
-    private volatile T result; // The result of the computation.
-    private volatile boolean isResolved; // Whether the result is resolved.
+   private volatile T result = null;
+   private volatile boolean isResolved = false;
+   private final Object lock = new Object();
 
-    private final Object resultLock = new Object(); // מנעול לעדכון התוצאה
-    private final Object statusLock = new Object(); // מנעול לבדיקה/עדכון מצב
+   public Future() {
+    this.result = null;  // תוצאה לא מוגדרת בהתחלה
+    this.isResolved = false;  // עדיין לא "נפתר"
+}
 
-    public Future() {
-        this.result = null;       
-        this.isResolved = false;  
-    }
-
-    public T get() {
-        synchronized (resultLock) {
-            while (!isDone()) {
-                try {
-                    resultLock.wait(); // Block the thread until the result is available.
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Handle interruption.
-                }
+   public T get() {
+      synchronized (lock) {
+         while (!isResolved) {  // Block the thread until the result is available.
+            try {
+               lock.wait();
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt(); // Handle interruption.
             }
-            return result; // Return the resolved result.
-        }
-    }
+         }
+         return result;
+      }
+   }
 
     public void resolve(T result) {
-        synchronized (resultLock) {
-            if (!isDone()) { // Make sure we resolve only once.
-                this.result = result;
-                synchronized (statusLock) {
-                    this.isResolved = true;
-                }
-                resultLock.notifyAll(); // Notify all threads waiting for the result.
+        synchronized (lock) {
+        if (!isDone()) {  // Check if already resolved using isDone()
+            this.result = result;
+            isResolved = true;
+            lock.notifyAll(); // Notify all threads waiting for the result.
+        }
+        }
+    }
+ 
+
+   public boolean isDone() {
+      synchronized (lock) {
+         return isResolved;
+      }
+   }
+
+   public T get(long timeout, TimeUnit unit) {
+      synchronized (lock) {
+         long millisTimeout = unit.toMillis(timeout);
+         long startTime = System.currentTimeMillis();
+
+         while (!isDone()) {
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            long remainingTime = millisTimeout - elapsedTime;
+            if (remainingTime <= 0L) {
+               return null;
             }
-        }
-    }
 
-    public boolean isDone() {
-        synchronized (statusLock) {
-            return isResolved;
-        }
-    }
-
-    public T get(long timeout, TimeUnit unit) {
-        synchronized (resultLock) {
-            long millisTimeout = unit.toMillis(timeout); 
-            long startTime = System.currentTimeMillis(); 
-
-            while (!isDone()) {
-                long elapsedTime = System.currentTimeMillis() - startTime;
-                long remainingTime = millisTimeout - elapsedTime;
-
-                if (remainingTime <= 0) {
-                    return null; // Timeout expired, return null.
-                }
-
-                try {
-                    resultLock.wait(remainingTime); // Wait for the result or the timeout.
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Handle interruption.
-                }
+            try {
+               lock.wait(remainingTime);
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
             }
-            return result; // Return the resolved result.
-        }
-    }
-    public void setResult(T result) {
-        this.result = result;
-        setIsResolved(true);
-    }
+         }
 
-    // עדכון מצב ה-"הושלם"
-    public void setIsResolved(boolean isResolved) {
-        this.isResolved = isResolved;
-    }
+         return result;
+      }
+   }
 }
+
+    ///_______________לבדוק אם צריך בכלל
+//     public void setResult(T result) {
+//         this.result = result;
+//         setIsResolved(true);
+//     }
+
+//     // עדכון מצב ה-"הושלם"
+//     public void setIsResolved(boolean isResolved) {
+//         this.isResolved = isResolved;
+//     }
+// }

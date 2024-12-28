@@ -1,9 +1,11 @@
 package bgu.spl.mics.application.objects;
 
-import java.io.*;
-import java.util.List;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 /**
  * LiDarDataBase is a singleton class responsible for managing LiDAR data.
@@ -11,24 +13,13 @@ import java.util.Arrays;
  */
 public class LiDarDataBase {
 
-    // Singleton instance
-    private static LiDarDataBase instance;
-    
-    // List to hold all the cloud points from different objects at different times
+    private static LiDarDataBase instance;// Singleton instance
     private List<StampedCloudPoints> cloudPoints;
 
-    // Private constructor to prevent instantiation from outside
     private LiDarDataBase(String filePath) {
-        this.cloudPoints = new ArrayList<>();
-        loadDataFromFile(filePath);
+        this.cloudPoints = loadDataFromFile(filePath);
     }
 
-    /**
-     * Returns the singleton instance of LiDarDataBase.
-     *
-     * @param filePath The path to the LiDAR data file.
-     * @return The singleton instance of LiDarDataBase.
-     */
     public static LiDarDataBase getInstance(String filePath) {
         if (instance == null) {
             synchronized (LiDarDataBase.class) {
@@ -40,60 +31,17 @@ public class LiDarDataBase {
         return instance;
     }
 
-    /**
-     * Loads the data from a file to populate the cloudPoints list.
-     * Assumes the file format is CSV-like with the object ID, time, and coordinates.
-     *
-     * @param filePath The path to the LiDAR data file.
-     */
-//לוודא!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    private void loadDataFromFile(String filePath) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // Split the line by commas
-                String[] parts = line.split(",");
-
-                // Check if the line has the correct number of parts (object ID, time, and cloud points)
-                if (parts.length < 3) {
-                    System.out.println("Skipping invalid line: " + line);
-                    continue;
-                }
-
-                // Get the object ID and time
-                String objectId = parts[0].trim();
-                int time = Integer.parseInt(parts[1].trim());
-
-                // Parse the cloud points (x, y pairs)
-                List<Double> cloudPointList = new ArrayList<>();
-                for (int i = 2; i < parts.length; i++) {
-                    cloudPointList.add(Double.parseDouble(parts[i].trim()));
-                }
-
-                // Create a StampedCloudPoints object and add it to the list
-                StampedCloudPoints stampedCloudPoints = new StampedCloudPoints(objectId, time, cloudPointList);
-                cloudPoints.add(stampedCloudPoints);
-            }
+    private List<StampedCloudPoints> loadDataFromFile(String filePath) {
+        try (FileReader reader = new FileReader(filePath)) {
+            Gson gson = new Gson();
+            return gson.fromJson(reader, new TypeToken<List<StampedCloudPoints>>() {}.getType());
         } catch (IOException e) {
-            e.printStackTrace();
+            return new ArrayList<>(); // Return an empty list in case of failure
         }
     }
 
-    /**
-     * Adds a StampedCloudPoints to the LiDar database.
-     *
-     * @param stampedCloudPoints The StampedCloudPoints object to be added.
-     */
-    public void addCloudPoints(StampedCloudPoints stampedCloudPoints) {
-        cloudPoints.add(stampedCloudPoints);
-    }
-
-    /**
-     * Returns the list of StampedCloudPoints.
-     *
-     * @return The list of StampedCloudPoints.
-     */
     public List<StampedCloudPoints> getCloudPoints() {
         return cloudPoints;
     }
+    //-----------------------פונקציה שמחזירה משהו שהמיקרו מבקש
 }

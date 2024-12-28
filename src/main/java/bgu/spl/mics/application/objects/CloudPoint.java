@@ -14,8 +14,6 @@ public class CloudPoint {
         this.y = y;
     }
 
-    // Getters and Setters for x, y coordinates
-
     public double getX() {
         return x;
     }
@@ -28,12 +26,4 @@ public class CloudPoint {
     public String toString() {
         return "CloudPoint{x=" + x + ", y=" + y + "}";
     }
-/* 
-    public void setX(int x) {
-        this.x = x;
-    }
-    public void setY(int y) {
-        this.y = y;
-    }
-*/
 }

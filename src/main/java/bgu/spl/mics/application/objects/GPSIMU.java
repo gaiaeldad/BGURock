@@ -1,6 +1,12 @@
 package bgu.spl.mics.application.objects;
 
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Represents the robot's GPS and IMU system.
@@ -9,65 +15,81 @@ import java.util.List;
 public class GPSIMU {
 
     // Fields
-    private int currentTick;  // The current time (tick)
-    private STATUS status;  // The status of the system (UP, DOWN, ERROR)
-    private List<Pose> poseList;  // List of time-stamped poses
+    private int currentTick; 
+    private STATUS status; 
+    private List<Pose> poseList; 
+    private int maxTime; 
 
-    // Constructor to initialize the GPSIMU object
-    public GPSIMU(int currentTick, STATUS status, List<Pose> poseList) {
-        this.currentTick = currentTick;
-        this.status = status;
-        this.poseList = poseList;
+    public GPSIMU(String filePath) {
+        this.currentTick = 0;
+        this.status = STATUS.UP;
+        this.poseList = loadPosesFromFile(filePath); // Load poses directly into the list
+        this.maxTime = calculateMaxTime(); // after this time the status needs to be DOWN
     }
 
-    // Get the current time (tick)
     public int getCurrentTick() {
         return currentTick;
     }
 
-
-    // Get the status of the GPSIMU system
     public STATUS getStatus() {
         return status;
     }
 
-    // Get the list of poses
     public List<Pose> getPoseList() {
         return poseList;
     }
 
-    // Add a pose to the pose list
-    public void addPose(Pose pose) {
-        this.poseList.add(pose);
+    public Pose getPoseAtTime() {
+        for (Pose pose : poseList) {
+            if (pose.getTime() == this.currentTick) {
+                return pose;
+            }
+        }
+        return null; 
     }
+
+    public List<Pose> loadPosesFromFile(String filePath) {
+        try (FileReader reader = new FileReader(filePath)) {
+            Gson gson = new Gson();
+            return gson.fromJson(reader, new TypeToken<List<Pose>>() {}.getType());
+        } catch (IOException e) {
+            return new ArrayList<>(); // Return an empty list in case of failure
+        }
+    }
+
+    private int calculateMaxTime() {
+        return poseList.stream().mapToInt(Pose::getTime).max().orElse(0);
+    }
+
     
-    // Optional: Override toString() to provide a string representation of the GPSIMU object
+    //Update the status to DOWN if the current time exceeds or equals the maximum time.
+    public void updateStatusBasedOnTime() {
+        if (currentTick >= maxTime) {
+            setStatus(STATUS.DOWN);
+        }
+    }
+
+    public void setStatus(STATUS status) {
+        this.status = status;
+    }
+
+    public void SetTick(int time) {
+        currentTick = time;
+        updateStatusBasedOnTime();
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("GPSIMU{currentTick=").append(currentTick)
           .append(", status=").append(status)
+          .append(", maxTime=").append(maxTime)
           .append(", poseList=");
         
-        // Print all poses
         for (Pose pose : poseList) {
             sb.append(pose).append(", ");
         }
         sb.append("}");
         return sb.toString();
     }
-/* 
-    public void setCurrentTick(int currentTick) {
-        this.currentTick = currentTick;
-    }
-    public void setPoseList(List<Pose> poseList) {
-        this.poseList = poseList;
-    }
-    public void setStatus(STATUS status) {
-        this.status = status;
-    }
-    public void setStatus(String statusString) {
-        this.status = STATUS.fromString(statusString);  // Use the STATUS enum to convert string to enum
-    }
-*/
 }

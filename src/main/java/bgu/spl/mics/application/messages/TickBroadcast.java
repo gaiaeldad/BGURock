@@ -3,18 +3,23 @@ package bgu.spl.mics.application.messages;
 import bgu.spl.mics.Broadcast;
 
 public class TickBroadcast implements Broadcast {
-    private final int time;
-    private String senderId;
+    private final int time; // The current time
+    private final int finalTick; // The final tick of the simulation
 
-    public TickBroadcast(int time,String senderId) {
+    public TickBroadcast(int time, int finalTick) {
         this.time = time;
-        this.senderId = senderId;
+        this.finalTick = finalTick;
     }
 
     public int getTime() {
         return time;
     }
-    public String getSenderId() {
-        return senderId;
+
+    public int getFinalTick() {
+        return finalTick;
+    }
+
+    public boolean isFinalTick() {
+        return time >= finalTick; // Return true if the current time is the last tick or beyond
     }
 }

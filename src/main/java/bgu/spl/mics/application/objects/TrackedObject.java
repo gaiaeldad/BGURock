@@ -1,5 +1,8 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Represents an object tracked by the LiDAR.
  * This object includes information about the tracked object's ID, description, 
@@ -10,7 +13,7 @@ public class TrackedObject {
     private String id;  // The ID of the tracked object
     private int time;  // The time the object was tracked
     private String description;  // A description of the object
-    private CloudPoint[] coordinates;  // The coordinates of the object, represented by an array of CloudPoint objects
+    private List<CloudPoint> coordinates;  // The coordinates of the object, represented by a list of CloudPoint objects
 
     /**
      * Constructor to initialize a TrackedObject with all fields.
@@ -18,13 +21,13 @@ public class TrackedObject {
      * @param id The ID of the tracked object.
      * @param time The time the object was tracked.
      * @param description A description of the tracked object.
-     * @param coordinates An array of CloudPoint objects representing the object's coordinates.
+     * @param coordinates A list of CloudPoint objects representing the object's coordinates.
      */
-    public TrackedObject(String id, int time, String description, CloudPoint[] coordinates) {
+    public TrackedObject(String id, int time, String description, List<CloudPoint> coordinates) {
         this.id = id;
         this.time = time;
         this.description = description;
-        this.coordinates = coordinates;
+        this.coordinates = coordinates != null ? coordinates : new ArrayList<>();
     }
 
     // Getters and Setters for each field
@@ -41,33 +44,21 @@ public class TrackedObject {
         return description;
     }
 
-    public CloudPoint[] getCoordinates() {
+    public List<CloudPoint> getCoordinates() {
         return coordinates;
     }
 
     /**
-     * Add a single coordinate point to the coordinates array.
+     * Add a single coordinate point to the coordinates list.
      * 
      * @param cloudPoint The CloudPoint object to be added.
      */
     public void addCoordinate(CloudPoint cloudPoint) {
-        CloudPoint[] newCoordinates = new CloudPoint[coordinates.length + 1];
-        System.arraycopy(coordinates, 0, newCoordinates, 0, coordinates.length);
-        newCoordinates[coordinates.length] = cloudPoint;       
-        coordinates = newCoordinates;
+        coordinates.add(cloudPoint);
     }
-/* 
-    public void setId(String id) {
-        this.id = id;
+
+    @Override
+    public String toString() {
+        return "TrackedObject{id='" + id + "', time=" + time + ", description='" + description + "', coordinates=" + coordinates + "}";
     }
-    public void setTime(int time) {
-        this.time = time;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    public void setCoordinates(CloudPoint[] coordinates) {
-        this.coordinates = coordinates;
-    }
-*/
 }

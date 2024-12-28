@@ -3,17 +3,17 @@ import bgu.spl.mics.Broadcast;
 
 public class CrashedBroadcast implements Broadcast {
     private final String errorMessage;
-    private String senderId;
+    private String senderName;
 
-    public CrashedBroadcast(String errorMessage,String senderId) {
+    public CrashedBroadcast(String errorMessage,String senderName) {
         this.errorMessage = errorMessage;
-        this.senderId = senderId;
+        this.senderName = senderName;
     }
     public String getErrorMessage() {
         return errorMessage;
     }
     public String getSenderId() {
-        return senderId;
+        return senderName;
     }
 
 }

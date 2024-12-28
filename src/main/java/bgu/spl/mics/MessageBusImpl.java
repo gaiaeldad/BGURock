@@ -2,8 +2,7 @@ package bgu.spl.mics;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
 
 
 /**
@@ -18,7 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
         private final Map<MicroService, BlockingQueue<Message>> microServiceEventQueues = new ConcurrentHashMap<>();
         private final Map<MicroService, BlockingQueue<Message>> microServiceBroadcastQueues = new ConcurrentHashMap<>();
 
-        private static volatile MessageBusImpl instance = null;
 //פונקציות חדשות
 
     @Override
@@ -44,19 +42,14 @@ import java.util.concurrent.locks.ReentrantLock;
             
         }
 
-        
-        public static MessageBusImpl getInstance() {
-            // שימוש במנגנון סינכרון לוודא שמופע MessageBusImpl ייווצר רק פעם אחת
-            if (instance == null) {
-                synchronized (MessageBusImpl.class) {
-                    if (instance == null) {
-                        instance = new MessageBusImpl();
-                    }
-                }
-            }
-            return instance;
+        private static class SingletonHolder { // מימוש כמו שהוצג בכיתה
+            private static final MessageBusImpl INSTANCE = new MessageBusImpl();
         }
-        
+    
+        public static MessageBusImpl getInstance() {
+            return SingletonHolder.INSTANCE;
+        }
+
         
 
         /**
@@ -68,7 +61,7 @@ import java.util.concurrent.locks.ReentrantLock;
             @SuppressWarnings("unchecked")
             Future<T> future = (Future<T>) eventFutures.get(e);
             if (future != null) {
-                future.setResult(result); // עדכון התוצאה
+                future.resolve(result); // עדכון התוצאה
             }
         }
         

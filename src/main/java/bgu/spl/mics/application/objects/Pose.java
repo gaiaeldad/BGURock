@@ -41,18 +41,4 @@ public class Pose {
     public String toString() {
         return "Pose{x=" + x + ", y=" + y + ", yaw=" + yaw + ", time=" + time + "}";
     }
-/* 
-    public void setX(float x) {
-        this.x = x;
-    }
-    public void setY(float y) {
-        this.y = y;
-    }
-    public void setYaw(float yaw) {
-        this.yaw = yaw;
-    }
-    public void setTime(int time) {
-        this.time = time;
-    }
-*/
 }
