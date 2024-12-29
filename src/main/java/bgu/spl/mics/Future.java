@@ -17,72 +17,68 @@ public class Future<T> {
    private final Object lock = new Object();
 
    public Future() {
-    this.result = null;  // תוצאה לא מוגדרת בהתחלה
-    this.isResolved = false;  // עדיין לא "נפתר"
+   this.result = null;  // תוצאה לא מוגדרת בהתחלה
+   this.isResolved = false;  // עדיין לא "נפתר"
 }
 
    public T get() {
-      synchronized (lock) {
-         while (!isResolved) {  // Block the thread until the result is available.
-            try {
-               lock.wait();
-            } catch (InterruptedException e) {
-               Thread.currentThread().interrupt(); // Handle interruption.
+      if (result == null) { 
+         synchronized (lock) {
+            while (!isDone()) {  // Block the thread until the result is available.
+               try {
+                  lock.wait();
+               } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt(); // Handle interruption.
+               }
             }
+            return result; 
          }
-         return result;
       }
+      return result;
    }
 
     public void resolve(T result) {
-        synchronized (lock) {
-        if (!isDone()) {  // Check if already resolved using isDone()
-            this.result = result;
-            isResolved = true;
-            lock.notifyAll(); // Notify all threads waiting for the result.
+      if (result == null){
+         synchronized (lock) {
+            if (!isDone()) {  // Check if already resolved using isDone()
+               this.result = result;
+               isResolved = true;
+               lock.notifyAll(); // Notify all threads waiting for the result.
+            }
         }
-        }
+      }
     }
  
 
-   public boolean isDone() {
+   public boolean isDone() {// אולי למחוק סנכרון
       synchronized (lock) {
          return isResolved;
       }
    }
 
    public T get(long timeout, TimeUnit unit) {
-      synchronized (lock) {
-         long millisTimeout = unit.toMillis(timeout);
-         long startTime = System.currentTimeMillis();
-
-         while (!isDone()) {
-            long elapsedTime = System.currentTimeMillis() - startTime;
-            long remainingTime = millisTimeout - elapsedTime;
-            if (remainingTime <= 0L) {
-               return null;
+      if (result == null){
+         synchronized (lock) {
+            if (result == null){
+               long millisTimeout = unit.toMillis(timeout);
+               long startTime = System.currentTimeMillis();
+               while (!isDone()) {
+                  long elapsedTime = System.currentTimeMillis() - startTime;
+                  long remainingTime = millisTimeout - elapsedTime;
+                  if (remainingTime <= 0L) {
+                     return null;
+                  }
+   
+                  try {
+                     lock.wait(remainingTime);
+                  } catch (InterruptedException e) {
+                     Thread.currentThread().interrupt();
+                  }
+               }
             }
-
-            try {
-               lock.wait(remainingTime);
-            } catch (InterruptedException e) {
-               Thread.currentThread().interrupt();
-            }
+            return result;
          }
-
-         return result;
       }
+      return result;
    }
 }
-
-    ///_______________לבדוק אם צריך בכלל
-//     public void setResult(T result) {
-//         this.result = result;
-//         setIsResolved(true);
-//     }
-
-//     // עדכון מצב ה-"הושלם"
-//     public void setIsResolved(boolean isResolved) {
-//         this.isResolved = isResolved;
-//     }
-// }
