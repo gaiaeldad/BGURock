@@ -38,7 +38,7 @@ public class Future<T> {
    }
 
     public void resolve(T result) {
-      if (result == null){
+      if (this.result == null){
          synchronized (lock) {
             if (!isDone()) {  // Check if already resolved using isDone()
                this.result = result;

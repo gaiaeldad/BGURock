@@ -14,8 +14,7 @@ import java.util.concurrent.*;
         private final Map<Class<? extends Event<?>>, Queue<MicroService>> eventSubscribers = new ConcurrentHashMap<>();
         private final Map<Class<? extends Broadcast>, List<MicroService>> broadcastSubscribers = new ConcurrentHashMap<>();
         private final Map<Event<?>, Future<?>> eventFutures = new ConcurrentHashMap<>();
-        private final Map<MicroService, BlockingQueue<Message>> microServiceEventQueues = new ConcurrentHashMap<>();
-        private final Map<MicroService, BlockingQueue<Message>> microServiceBroadcastQueues = new ConcurrentHashMap<>();
+        private final Map<MicroService, BlockingQueue<Message>> microServiceQueues = new ConcurrentHashMap<>();
 
         private static class SingletonHolderMessageBusImpl { // מימוש כמו שהוצג בכיתה
             private static final MessageBusImpl INSTANCE = new MessageBusImpl();
@@ -27,8 +26,7 @@ import java.util.concurrent.*;
 
         @Override
         public void register(MicroService m) {
-            microServiceEventQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
-            microServiceBroadcastQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
+            microServiceQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
         }
 
         @Override
@@ -69,14 +67,11 @@ import java.util.concurrent.*;
         @Override
         public void sendBroadcast(Broadcast b) {
             List<MicroService> subscribers;
-            synchronized(broadcastSubscribers){
-                subscribers = broadcastSubscribers.get(b.getClass());
-            }
-            
+            subscribers = broadcastSubscribers.get(b.getClass());  
             if (subscribers != null) {
                     for (MicroService m : subscribers) {
                         try {
-                            microServiceBroadcastQueues.get(m).put(b);
+                            microServiceQueues.get(m).put(b);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -113,7 +108,7 @@ import java.util.concurrent.*;
             eventFutures.putIfAbsent(e, future);
             try {
                 // שולחים את האירוע למיקרו-שירות הנבחר
-                microServiceEventQueues.get(selectedService).put(e);
+                microServiceQueues.get(selectedService).put(e);
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }
@@ -127,8 +122,7 @@ import java.util.concurrent.*;
 
         @Override
         public void unregister(MicroService m) {
-                microServiceEventQueues.remove(m); 
-                microServiceBroadcastQueues.remove(m); 
+                microServiceQueues.remove(m);
                 for (Queue <MicroService> subscribers : eventSubscribers.values()) {
                     synchronized(subscribers){
                         subscribers.remove(m);
@@ -145,20 +139,8 @@ import java.util.concurrent.*;
          */
         @Override
         public Message awaitMessage(MicroService m) throws InterruptedException {
-            BlockingQueue<Message> eventQueue = microServiceEventQueues.get(m);
-            BlockingQueue<Message> broadcastQueue = microServiceBroadcastQueues.get(m);
-            while (true) {
-                Message broadcastMessage = broadcastQueue.poll();
-                if (broadcastMessage != null) {
-                    return broadcastMessage;
-                }
-                Message eventMessage = eventQueue.poll();
-                if (eventMessage != null) {
-                    return eventMessage;
-                }
-                Thread.sleep(100); //לבדוק
-            }
-        
+            BlockingQueue<Message> queue = microServiceQueues.get(m);
+            return queue.take(); // Blocks until a message is available
         }
     
 

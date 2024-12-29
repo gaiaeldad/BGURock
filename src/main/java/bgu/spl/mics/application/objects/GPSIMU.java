@@ -47,6 +47,14 @@ public class GPSIMU {
         }
         return null; 
     }
+    public Pose getPoseAtTime(int time) {
+        for (Pose pose : poseList) {
+            if (pose.getTime() == time) {
+                return pose;
+            }
+        }
+        return null; 
+    }
 
     public List<Pose> loadPosesFromFile(String filePath) {
         try (FileReader reader = new FileReader(filePath)) {

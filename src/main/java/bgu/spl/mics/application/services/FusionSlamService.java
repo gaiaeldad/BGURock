@@ -29,13 +29,13 @@ public class FusionSlamService extends MicroService {
         // Register for TrackedObjectsEvent
         subscribeEvent(TrackedObjectsEvent.class, event -> {
             fusionSlam.processTrackedObjects(event.getTrackedObjects());
-            complete(event, null);
+            complete(event, true);
         });
 
         // Register for PoseEvent
         subscribeEvent(PoseEvent.class, event -> {
             fusionSlam.updatePose(event.getPose());
-            complete(event, null);
+            complete(event, true);
         });
 
         // Register for TickBroadcast

@@ -15,7 +15,7 @@ public class FusionSlam {
     public static FusionSlam getInstance() {
         return SingletonHolderFusionSlam.INSTANCE;
     }
-
+    
     private ArrayList<LandMark> landmarks  = new ArrayList<>(); // Dynamic array of landmarks
     private Pose currentPose = null; // The current pose of the robot
     private int serviceCounter = 0;
@@ -39,8 +39,8 @@ public class FusionSlam {
         if (currentPose != null) {
             for (TrackedObject obj : trackedObjects) {
                 String id = obj.getId();
-                List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), currentPose);
-    
+                //צריך להבין את משיגים את הפוזה הנוכחית
+                List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), gpsImu.getPoseAtTime(obj.getTime()));
                 LandMark existingLandmark = findLandMarkById(id);
                 if (existingLandmark != null) {
                     // Update existing landmark by averaging coordinates
