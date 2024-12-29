@@ -87,7 +87,7 @@ public class Camera {
     }
 
     public void checkIfDone(int currentTime) {
-        if (currentTime + frequency > maxTime) {
+        if (currentTime >= maxTime) {
             setStatus(STATUS.DOWN);
         }
     }

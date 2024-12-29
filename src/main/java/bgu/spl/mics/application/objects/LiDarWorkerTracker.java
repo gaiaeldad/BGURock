@@ -16,6 +16,7 @@ public class LiDarWorkerTracker {
     private LiDarDataBase liDarDataBase; // Instance of LiDarDataBase
     private int currentTick = 0;
     private int maxTime;
+    
 
     // Constructor to initialize the LiDarWorkerTracker object.
     public LiDarWorkerTracker(int id, int frequency, String lidarDataFilePath) {
@@ -25,6 +26,7 @@ public class LiDarWorkerTracker {
         this.lastTrackedObjects = new ArrayList<>();
         this.liDarDataBase = LiDarDataBase.getInstance(lidarDataFilePath); // Initialize the singleton instance
         this.maxTime = calculateMaxTime(); // Calculate the maximum time from the database
+        
     }
 
     public int getId() {
@@ -38,10 +40,15 @@ public class LiDarWorkerTracker {
     public STATUS getStatus() {
         return status;
     }
+    
 
     public void setStatus(STATUS status) {
         this.status = status;
     }
+    public int getCurrentTick(){
+        return currentTick;
+    }
+
 
     public List<TrackedObject> getLastTrackedObjects() {
         return lastTrackedObjects;
@@ -61,21 +68,34 @@ public class LiDarWorkerTracker {
         return new ArrayList<>(); // Return an empty list if no match is found
     }
 
+    public void checkForErrorInCloudPointsAtTime(int time) {
+        List<StampedCloudPoints> cloudPointsList = liDarDataBase.getCloudPoints();
+        for (StampedCloudPoints stampedCloudPoints : cloudPointsList) {
+            if ("ERROR".equals(stampedCloudPoints.getId()) && stampedCloudPoints.getTime() == time) {
+                setStatus(STATUS.ERROR);
+                break;
+
+            }
+        }
+    }
+
     public List<TrackedObject> prosseingEvent(StampedDetectedObject stampedDetectedObjects) {
         this.lastTrackedObjects = new ArrayList<>();
         int detectionTime = stampedDetectedObjects.getTime();//לבדוק זמנים
         int processingTime = detectionTime + this.frequency;
         if (currentTick >= processingTime) { // Ensure the current tick aligns with the LiDAR worker's processing time
             List<DetectedObject> detectedObjects = stampedDetectedObjects.getDetectedObjects();
-
-            for (DetectedObject detectedObject : detectedObjects) {
-                TrackedObject trackedObject = new TrackedObject(
-                    detectedObject.getId(),
-                    detectionTime,//לבדוק זמנים
-                    detectedObject.getDescription(),
-                    getCoordinates(detectedObject.getId(), processingTime)//לבדוק זמנים
-                );
-                lastTrackedObjects.add(trackedObject);
+            checkForErrorInCloudPointsAtTime(processingTime);
+            if (this.status == STATUS.UP){
+                for (DetectedObject detectedObject : detectedObjects) {
+                    TrackedObject trackedObject = new TrackedObject(
+                        detectedObject.getId(),
+                        detectionTime,//לבדוק זמנים
+                        detectedObject.getDescription(),
+                        getCoordinates(detectedObject.getId(), processingTime)//לבדוק זמנים
+                    );
+                    lastTrackedObjects.add(trackedObject);
+                }
             }
         }
         return lastTrackedObjects;

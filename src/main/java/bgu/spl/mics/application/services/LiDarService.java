@@ -11,7 +11,12 @@ import bgu.spl.mics.application.objects.STATUS;
 import bgu.spl.mics.application.objects.TrackedObject;
 import bgu.spl.mics.application.objects.StatisticalFolder;
 
+import static org.junit.Assert.assertSame;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * LiDarService is responsible for processing data from the LiDAR sensor and
@@ -24,40 +29,76 @@ import java.util.List;
 public class LiDarService extends MicroService {
 
     private final LiDarWorkerTracker lidarWorkerTracker;
-    
+    private  PriorityQueue<TrackedObjectsEvent> eventQueue;
+
 
     public LiDarService(String name, LiDarWorkerTracker lidarWorkerTracker) {
         super(name);
         this.lidarWorkerTracker = lidarWorkerTracker;
+        this.eventQueue = new PriorityQueue<>(Comparator.comparingInt(event -> event.getTime()));
+
     }
 
     @Override
     protected void initialize() {
         subscribeBroadcast(TickBroadcast.class, tick -> {
-            lidarWorkerTracker.updateTick(tick.getTime());//לבדוק זמנים
-        //----------------------זונות של הצאט 2
+            int currentTime = tick.getTime();
+            lidarWorkerTracker.updateTick(currentTime);
+            // רשימת אובייקטים מוכנים לשליחה
+            while (!eventQueue.isEmpty()) {
+                TrackedObjectsEvent event = eventQueue.peek();
+                if (event.getdesignatedTime() > currentTime) {//לעדכן זמן מיועד
+                    break;
+                }
+                TrackedObjectsEvent readyEvent = eventQueue.poll(); // Remove the first event (FIFO)
+                sendEvent(readyEvent);
+                StatisticalFolder.getInstance().updateNumDetectedObjects(
+                    readyEvent.getTrackedObjects().size());
+            }  
         });
+
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-        //----------------------fill
+        //----------------------fill- what should we do here 
         });
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
-        //----------------------fill
+            terminate();
+            sendBroadcast(new TerminatedBroadcast(getName()));
+        //should we do more?
         });
     
         //--------------------לוודא את עניין הזמנים שוב
-        subscribeEvent(DetectObjectsEvent.class, (DetectObjectsEvent event) -> {
-            //-------------------מתי הופכים אותו לDOWN?
+        subscribeEvent(DetectObjectsEvent.class, event -> {
             if(lidarWorkerTracker.getStatus()==STATUS.UP){   
                 List<TrackedObject> TrackedObjects = lidarWorkerTracker.prosseingEvent(event.getStampedDetectedObjects());
-                complete(event, true);//האירוע טופל
-                //--------------להבין את הזמנים בדיוק
-                sendEvent(new TrackedObjectsEvent(event.getStampedDetectedObjects().getTime(), TrackedObjects, getName()));
-                StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
-            }else{
+               if (lidarWorkerTracker.getStatus()==STATUS.ERROR){
+                    terminate();
+                    sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected", this.getName()));
+               }
+               else{
+                    int sendTime = event.getSendTime();
+                    int designatedTime = event.getStampedDetectedObjects().getTime() + lidarWorkerTracker.getFrequency();
+                    int currTime = lidarWorkerTracker.getCurrentTick();
+                    TrackedObjectsEvent toSendEvent = (new TrackedObjectsEvent(event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));//לבדוק איזה זמן להכניס לו בסוף
+                    if (currTime >= sendTime && currTime >= designatedTime){ /////----------לבדוק תנאי ראשון
+                        complete(event, true);
+                        sendEvent(toSendEvent);
+                        StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
+                    }
+                    else{
+                        eventQueue.add(toSendEvent);
+                    }
+               }
+               if (lidarWorkerTracker.getStatus() == STATUS.DOWN){
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName()));  
+                }
+            }
+            else{//down
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));    
-            }
+            }          
         });
+
 
     }
         
