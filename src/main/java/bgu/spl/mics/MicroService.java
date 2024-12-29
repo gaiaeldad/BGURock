@@ -141,6 +141,8 @@ public abstract class MicroService implements Runnable {
      */
     protected final void terminate() {
         this.terminated = true;
+        messageBus.unregister(this);
+        //לראות אם יש עוד משהו שצריך לעשות 
     }
 
     /**

@@ -20,12 +20,14 @@ public class Camera {
     private STATUS status; 
     private List<StampedDetectedObject> detectedObjectsList; 
     private int maxTime;
+    private String errMString;
 
     public Camera(int id, int frequency, String filePath, String cameraKey) {
         this.id = id;
         this.frequency = frequency;
         this.status = STATUS.UP;
         maxTime = 0;
+        errMString = null;
         loadDetectedObjectsFromFile(filePath, cameraKey);
     }
 
@@ -40,6 +42,10 @@ public class Camera {
     public STATUS getStatus() {
         return status;
     }
+    public String getErrMString() {
+        return errMString;
+    }
+
 
     public List<StampedDetectedObject> getDetectedObjectsList() {
         return detectedObjectsList;
@@ -49,10 +55,17 @@ public class Camera {
         checkIfDone(time);
         for (StampedDetectedObject stampedObject : detectedObjectsList) {
             if (stampedObject.getTime() == time) {
-                return stampedObject; 
+                for (DetectedObject obj : stampedObject.getDetectedObjects()) {
+                    if ("ERROR".equals(obj.getId())) {
+                        errMString = obj.getDescription();
+                        setStatus(STATUS.ERROR); 
+                        break; 
+                    }
+                }
+                return stampedObject;
             }
         }
-        return null; // Return an empty list if no objects were detected at the given time
+        return null; 
     }
 
     public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {

@@ -3,6 +3,7 @@ package bgu.spl.mics.application.services;
 import java.util.List;
 import bgu.spl.mics.Broadcast;
 import bgu.spl.mics.MicroService;
+import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.DetectObjectsEvent;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
@@ -46,28 +47,32 @@ public class CameraService extends MicroService {
             //--------------------לוודא את עניין הזמנים שוב
             if (camera.getStatus() == STATUS.UP) {
                 StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime + camera.getFrequency());
-
-                if (detectedObject != null) {
+                if (camera.getStatus() == STATUS.ERROR){
+                    terminate();
+                    sendBroadcast(new CrashedBroadcast(camera.getErrMString(), this.getName()));
+                }
+                else{
+                  if (detectedObject != null) {
                     DetectObjectsEvent event = new DetectObjectsEvent(detectedObject, getName());
                     sendEvent(event);
-
-                    // Update the statistical folder
-                    StatisticalFolder.getInstance().updateNumDetectedObjects(1); 
+                    StatisticalFolder.getInstance().updateNumDetectedObjects(detectedObject.getDetectedObjects().size());
+                  }   
                 }
             }
-            else {
+            else {//camers is down 
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));     
             }
         });
-//--------------------------------------לבדוק------------------------------------------------------------
+//--------------------------------------זה לא נכון צריך לתקן ולהבין מה לעשות עם ההרשמות האלו ------------------------------------------------------------
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            terminate();
+            // what should we do here?
         });
         // Subscribe to TerminatedBroadcast
-        subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            terminate();// צריך לעשות גם לקראש
+        subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            terminate();
+            sendBroadcast(new TerminatedBroadcast(getName()));   
         });
         
     }
