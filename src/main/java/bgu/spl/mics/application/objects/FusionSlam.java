@@ -2,36 +2,25 @@ package bgu.spl.mics.application.objects;
 
 import java.util.*;
 
+
 /**
  * Manages the fusion of sensor data for simultaneous localization and mapping (SLAM).
  * Combines data from multiple sensors (e.g., LiDAR, camera) to build and update a global map.
  * Implements the Singleton pattern to ensure a single instance of FusionSlam exists.
  */
 public class FusionSlam {
-
-    private static FusionSlam instance;
-
-    private ArrayList<LandMark> landmarks; // Dynamic array of landmarks
-    private Pose currentPose; // The current pose of the robot
-
-    // Private constructor for Singleton pattern
-    private FusionSlam() {
-        this.landmarks = new ArrayList<>();
-        this.currentPose = null;
+    private static class SingletonHolderFusionSlam {// מימוש כמו שהוצג בכיתה
+         private static final FusionSlam INSTANCE = new FusionSlam();
+    }
+    public static FusionSlam getInstance() {
+        return SingletonHolderFusionSlam.INSTANCE;
     }
 
-    /**
-     * Returns the Singleton instance of FusionSlam.
-     *
-     * @return The FusionSlam instance.
-     */
-    public static synchronized FusionSlam getInstance() {
-        if (instance == null) {
-            instance = new FusionSlam();
-        }
-        return instance;
-    }
-
+    private ArrayList<LandMark> landmarks  = new ArrayList<>(); // Dynamic array of landmarks
+    private Pose currentPose = null; // The current pose of the robot
+    private int serviceCounter = 0;
+    
+    
     /**
      * Updates the current pose of the robot.
      *
@@ -157,4 +146,16 @@ public class FusionSlam {
         }
         return sb.toString();
     }
+    public boolean isTerminated (){
+        return (serviceCounter <= 0);
+    }
+    public int getserviceCounter(){
+        return serviceCounter;
+    }
+    public void increasServiceCounter(){
+        this.serviceCounter++;
+    }
+    public void decreaseServiceCounter() {
+        this.serviceCounter--;
+    }   
 }

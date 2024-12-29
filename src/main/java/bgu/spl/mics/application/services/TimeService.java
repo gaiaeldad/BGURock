@@ -40,11 +40,8 @@ public class TimeService extends MicroService {
                 // Broadcast the current tick
                 sendBroadcast(new TickBroadcast(currentTick, duration));
                 System.out.println("TimeService broadcasted Tick: " + currentTick);
-
                 // Update system runtime in StatisticalFolder
                 StatisticalFolder.getInstance().updateSystemRuntime(1);
-                //-----------לבדוק---------------------
-
                 // Wait for the next tick
                 Thread.sleep(tickTime * 1000L);
             }

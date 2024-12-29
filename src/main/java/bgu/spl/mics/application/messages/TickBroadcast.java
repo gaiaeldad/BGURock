@@ -8,7 +8,7 @@ public class TickBroadcast implements Broadcast {
 
     public TickBroadcast(int time, int finalTick) {
         this.time = time;
-        this.finalTick = finalTick;
+        this.finalTick = finalTick;//לבדוק אם צריך
     }
 
     public int getTime() {

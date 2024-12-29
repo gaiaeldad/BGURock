@@ -18,8 +18,7 @@ public class FusionSlamService extends MicroService {
      */
     public FusionSlamService(FusionSlam fusionSlam) {
         super("FusionSlamService");
-        this.fusionSlam = fusionSlam;
-    }
+        this.fusionSlam = FusionSlam.getInstance();    }
 
     /**
      * Initializes the FusionSlamService.
@@ -49,7 +48,8 @@ public class FusionSlamService extends MicroService {
 
         // Register for TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
-            terminate();
+            fusionSlam.decreaseServiceCounter();
+            
         });
 
         // Register for CrashedBroadcast

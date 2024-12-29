@@ -18,12 +18,12 @@ public class StatisticalFolder {
         this.numLandmarks = new AtomicInteger(0);
     }
     // Singleton Holder for thread-safe מימוש כמו בכיתה
-    private static class SingletonHolder {
+    private static class SingletonHolderStatisticalFolder {
         private static final StatisticalFolder INSTANCE = new StatisticalFolder();
     }
 
     public static StatisticalFolder getInstance() {
-        return SingletonHolder.INSTANCE;
+        return SingletonHolderStatisticalFolder.INSTANCE;
     }
     
     // Getters

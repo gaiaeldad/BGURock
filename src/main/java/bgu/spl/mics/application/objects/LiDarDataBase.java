@@ -13,23 +13,36 @@ import java.util.List;
  */
 public class LiDarDataBase {
 
-    private static LiDarDataBase instance;// Singleton instance
     private List<StampedCloudPoints> cloudPoints;
 
     private LiDarDataBase(String filePath) {
         this.cloudPoints = loadDataFromFile(filePath);
     }
+    // Singleton Holder - Lazy Initialization
+    private static class SingletonHolderLiDarDataBase {
+        private static LiDarDataBase INSTANCE = null;
 
-    public static LiDarDataBase getInstance(String filePath) {
-        if (instance == null) {
-            synchronized (LiDarDataBase.class) {
-                if (instance == null) {
-                    instance = new LiDarDataBase(filePath);
-                }
+        private static LiDarDataBase LiDarDataBasecreatInstance (String filePath){
+            if (INSTANCE == null){
+                INSTANCE = new LiDarDataBase (filePath);
             }
+            return INSTANCE;
         }
-        return instance;
     }
+
+    public static LiDarDataBase getInstance (String filePath){
+        return SingletonHolderLiDarDataBase.LiDarDataBasecreatInstance(filePath);
+    }
+
+
+    /**
+     * Returns the singleton instance of LiDarDataBase.
+     * Initializes it with the provided file path if not already initialized.
+     *
+     * @param filePath The file path to initialize the LiDarDataBase.
+     * @return The LiDarDataBase instance.
+     */
+
 
     private List<StampedCloudPoints> loadDataFromFile(String filePath) {
         try (FileReader reader = new FileReader(filePath)) {

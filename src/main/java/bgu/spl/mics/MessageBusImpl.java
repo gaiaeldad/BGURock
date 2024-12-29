@@ -17,9 +17,15 @@ import java.util.concurrent.*;
         private final Map<MicroService, BlockingQueue<Message>> microServiceEventQueues = new ConcurrentHashMap<>();
         private final Map<MicroService, BlockingQueue<Message>> microServiceBroadcastQueues = new ConcurrentHashMap<>();
 
-//פונקציות חדשות
+        private static class SingletonHolderMessageBusImpl { // מימוש כמו שהוצג בכיתה
+            private static final MessageBusImpl INSTANCE = new MessageBusImpl();
+        }
+    
+        public static MessageBusImpl getInstance() {
+            return SingletonHolderMessageBusImpl.INSTANCE;
+        }
 
-    @Override
+        @Override
         public void register(MicroService m) {
             microServiceEventQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
             microServiceBroadcastQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
@@ -42,13 +48,7 @@ import java.util.concurrent.*;
             
         }
 
-        private static class SingletonHolder { // מימוש כמו שהוצג בכיתה
-            private static final MessageBusImpl INSTANCE = new MessageBusImpl();
-        }
-    
-        public static MessageBusImpl getInstance() {
-            return SingletonHolder.INSTANCE;
-        }
+        
 
         
 
