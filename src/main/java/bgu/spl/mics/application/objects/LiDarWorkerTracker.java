@@ -41,12 +41,12 @@ public class LiDarWorkerTracker {
         return status;
     }
     
+    public int getCurrentTick() {
+        return currentTick;
+    }
 
     public void setStatus(STATUS status) {
         this.status = status;
-    }
-    public int getCurrentTick(){
-        return currentTick;
     }
 
 
@@ -74,30 +74,27 @@ public class LiDarWorkerTracker {
             if ("ERROR".equals(stampedCloudPoints.getId()) && stampedCloudPoints.getTime() == time) {
                 setStatus(STATUS.ERROR);
                 break;
-
             }
         }
     }
 
     public List<TrackedObject> prosseingEvent(StampedDetectedObject stampedDetectedObjects) {
         this.lastTrackedObjects = new ArrayList<>();
-        int detectionTime = stampedDetectedObjects.getTime();//לבדוק זמנים
-        int processingTime = detectionTime + this.frequency;
-        if (currentTick >= processingTime) { // Ensure the current tick aligns with the LiDAR worker's processing time
-            List<DetectedObject> detectedObjects = stampedDetectedObjects.getDetectedObjects();
-            checkForErrorInCloudPointsAtTime(processingTime);
-            if (this.status == STATUS.UP){
-                for (DetectedObject detectedObject : detectedObjects) {
-                    TrackedObject trackedObject = new TrackedObject(
-                        detectedObject.getId(),
-                        detectionTime,//לבדוק זמנים
-                        detectedObject.getDescription(),
-                        getCoordinates(detectedObject.getId(), processingTime)//לבדוק זמנים
+        int detectionTime = stampedDetectedObjects.getTime();
+        List<DetectedObject> detectedObjects = stampedDetectedObjects.getDetectedObjects();
+        checkForErrorInCloudPointsAtTime(detectionTime);
+        if (this.status == STATUS.UP){
+            for (DetectedObject detectedObject : detectedObjects){
+                TrackedObject trackedObject = new TrackedObject(
+                    detectedObject.getId(),
+                    detectionTime,
+                    detectedObject.getDescription(),
+                    getCoordinates(detectedObject.getId(), detectionTime)//להמיר את הקורדינטות לליסט של קלאוד
                     );
                     lastTrackedObjects.add(trackedObject);
-                }
             }
         }
+        
         return lastTrackedObjects;
     }
 

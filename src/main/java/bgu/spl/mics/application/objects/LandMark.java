@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,6 +43,11 @@ public class LandMark {
         StatisticalFolder.getInstance().updateNumLandmarks(1);  // מעדכן את מספר ה-landmarks במערכת.
     }
 
+    public void setCoordinates(List<CloudPoint> coordinates) {
+        this.coordinates = new ArrayList<>(coordinates); // יצירת עותק
+    }
+
+
     // Optional: Override toString() to provide a string representation of the landmark
     @Override
     public String toString() {
@@ -64,9 +70,7 @@ public class LandMark {
     public void setDescription(String description) {
         this.description = description;
     }
-    public void setCoordinates(List<CloudPoint> coordinates) {
-        this.coordinates = coordinates;
-    }
+    
 */
 
 }

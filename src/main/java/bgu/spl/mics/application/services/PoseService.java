@@ -37,10 +37,13 @@ public class PoseService extends MicroService {
             gpsimu.SetTick(tick.getTime());
             if (gpsimu.getStatus() == STATUS.UP) {
                 Pose currentPose = gpsimu.getPoseAtTime();
-
                 if (currentPose != null) {
                     // Broadcast PoseEvent with the current pose and sender name
                     sendEvent(new PoseEvent(currentPose, getName()));
+                }
+                if (gpsimu.getStatus() == STATUS.DOWN){
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName())); 
                 }
             } else {
                 terminate();

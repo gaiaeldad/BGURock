@@ -158,6 +158,7 @@ public abstract class MicroService implements Runnable {
      * otherwise you will end up in an infinite loop.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public final void run() {
         messageBus.register(this);
         initialize();
@@ -166,7 +167,7 @@ public abstract class MicroService implements Runnable {
                 // Wait for a message
                 Message message = messageBus.awaitMessage(this);
                 // Find and execute the appropriate callback
-                Callback<?> callback = callbacks.get(message.getClass());
+                Callback<Message> callback = (Callback<Message>) callbacks.get(message.getClass());
                 callback.call(message);
             } catch (InterruptedException e) {
                 terminate();

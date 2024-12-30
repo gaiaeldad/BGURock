@@ -34,7 +34,7 @@ public class FusionSlamService extends MicroService {
 
         // Register for PoseEvent
         subscribeEvent(PoseEvent.class, event -> {
-            fusionSlam.updatePose(event.getPose());
+            fusionSlam.addPose(event.getPose());
             complete(event, true);
         });
 
@@ -49,7 +49,7 @@ public class FusionSlamService extends MicroService {
         // Register for TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
             fusionSlam.decreaseServiceCounter();
-            
+            //------------צריך לקרות פה דברים
         });
 
         // Register for CrashedBroadcast

@@ -17,7 +17,7 @@ public class FusionSlam {
     }
     
     private ArrayList<LandMark> landmarks  = new ArrayList<>(); // Dynamic array of landmarks
-    private Pose currentPose = null; // The current pose of the robot
+    private Map<Integer, Pose> posesByTime = new HashMap<>(); // Map to hold poses by time
     private int serviceCounter = 0;
     
     
@@ -26,21 +26,25 @@ public class FusionSlam {
      *
      * @param pose The new pose.
      */
-    public void updatePose(Pose pose) {
-        this.currentPose = pose;
+    public void addPose(Pose pose) {
+        posesByTime.put(pose.getTime(), pose); // Add the pose to the map
+    }
+    
+    public Pose getPoseAtTime(int time) {
+        return posesByTime.get(time);
     }
 
-    /**
+    /** 
      * Processes a tracked object event to update or add landmarks.
      *
      * @param trackedObjects The list of tracked objects.
      */
     public synchronized void processTrackedObjects(List<TrackedObject> trackedObjects) {
-        if (currentPose != null) {
-            for (TrackedObject obj : trackedObjects) {
-                String id = obj.getId();
-                //צריך להבין את משיגים את הפוזה הנוכחית
-                List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), gpsImu.getPoseAtTime(obj.getTime()));
+        for (TrackedObject obj : trackedObjects) {
+            String id = obj.getId();
+            Pose relaventPose = getPoseAtTime(obj.getTime());
+            if (relaventPose != null){
+                List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), relaventPose);
                 LandMark existingLandmark = findLandMarkById(id);
                 if (existingLandmark != null) {
                     // Update existing landmark by averaging coordinates
@@ -52,7 +56,9 @@ public class FusionSlam {
                     StatisticalFolder.getInstance().updateNumLandmarks(1);
                 }
             }
-        }  
+            
+        }
+         
     }
     /**
      * Updates the coordinates of an existing landmark by averaging the new coordinates with the old ones.
@@ -84,9 +90,7 @@ public class FusionSlam {
         if (existingCoordinates.size() > newCoordinates.size()) {
             updatedCoordinates.addAll(existingCoordinates.subList(size, existingCoordinates.size()));
         }
-
-        existingCoordinates.clear();
-        existingCoordinates.addAll(updatedCoordinates);
+        existingLandmark.setCoordinates(updatedCoordinates);
     }
 
 

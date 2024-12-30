@@ -11,9 +11,9 @@ import bgu.spl.mics.application.objects.STATUS;
 import bgu.spl.mics.application.objects.TrackedObject;
 import bgu.spl.mics.application.objects.StatisticalFolder;
 
-import static org.junit.Assert.assertSame;
+//import static org.junit.Assert.assertSame;
 
-import java.util.ArrayList;
+//import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -44,13 +44,13 @@ public class LiDarService extends MicroService {
         subscribeBroadcast(TickBroadcast.class, tick -> {
             int currentTime = tick.getTime();
             lidarWorkerTracker.updateTick(currentTime);
-            // רשימת אובייקטים מוכנים לשליחה
             while (!eventQueue.isEmpty()) {
                 TrackedObjectsEvent event = eventQueue.peek();
-                if (event.getdesignatedTime() > currentTime) {//לעדכן זמן מיועד
+                if (event.getdesignatedTime() > currentTime) {
                     break;
                 }
-                TrackedObjectsEvent readyEvent = eventQueue.poll(); // Remove the first event (FIFO)
+                TrackedObjectsEvent readyEvent = eventQueue.poll();
+                complete(readyEvent.getHandeledEvent(), true);
                 sendEvent(readyEvent);
                 StatisticalFolder.getInstance().updateNumDetectedObjects(
                     readyEvent.getTrackedObjects().size());
@@ -75,11 +75,10 @@ public class LiDarService extends MicroService {
                     sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected", this.getName()));
                }
                else{
-                    int sendTime = event.getSendTime();
                     int designatedTime = event.getStampedDetectedObjects().getTime() + lidarWorkerTracker.getFrequency();
                     int currTime = lidarWorkerTracker.getCurrentTick();
-                    TrackedObjectsEvent toSendEvent = (new TrackedObjectsEvent(event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));//לבדוק איזה זמן להכניס לו בסוף
-                    if (currTime >= sendTime && currTime >= designatedTime){ /////----------לבדוק תנאי ראשון
+                    TrackedObjectsEvent toSendEvent = (new TrackedObjectsEvent(event, event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));
+                    if (designatedTime <= currTime){ /////----------לבדוק תנאי ראשון
                         complete(event, true);
                         sendEvent(toSendEvent);
                         StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
@@ -88,7 +87,7 @@ public class LiDarService extends MicroService {
                         eventQueue.add(toSendEvent);
                     }
                }
-               if (lidarWorkerTracker.getStatus() == STATUS.DOWN){
+               if (lidarWorkerTracker.getStatus() == STATUS.DOWN){//מתי זה הופך ללמטה???
                     terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));  
                 }

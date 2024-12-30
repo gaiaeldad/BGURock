@@ -40,6 +40,7 @@ public class GPSIMU {
     }
 
     public Pose getPoseAtTime() {
+        updateStatusBasedOnTime();
         for (Pose pose : poseList) {
             if (pose.getTime() == this.currentTick) {
                 return pose;

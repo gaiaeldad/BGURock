@@ -9,8 +9,10 @@ public class TrackedObjectsEvent implements Event <Boolean>{
     private final List<TrackedObject> trackedObjects; 
     private String senderName;
     private int designatedTime;
+    DetectObjectsEvent handeledEvent;
   
-    public TrackedObjectsEvent(int time, List<TrackedObject> trackedObjects, String senderName, int designatedTime) {
+    public TrackedObjectsEvent(DetectObjectsEvent event, int time, List<TrackedObject> trackedObjects, String senderName, int designatedTime) {
+        this.handeledEvent = event;
         this.foundTime = time;
         this.trackedObjects = trackedObjects;
         this.senderName = senderName;
@@ -18,6 +20,9 @@ public class TrackedObjectsEvent implements Event <Boolean>{
     }
     public int getTime() {
         return foundTime;
+    }
+    public DetectObjectsEvent getHandeledEvent(){
+        return this.handeledEvent;
     }
     public int getdesignatedTime(){
         return this.designatedTime;
