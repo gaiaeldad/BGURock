@@ -1,6 +1,7 @@
 package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
+import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.PoseEvent;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
@@ -51,13 +52,17 @@ public class PoseService extends MicroService {
             }
         });
         //--------------------------------------לבדוק------------------------------------------------------------
-        // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            terminate();
+            if ("TimeService".equals(broadcast.getSenderName())) {
+                terminate();
+                sendBroadcast(new TerminatedBroadcast(getName()));  
+            } 
         });
-        // Subscribe to TerminatedBroadcast
-        subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            terminate();// צריך לעשות גם לקראש
+
+        // Subscribe to CrashedBroadcast
+        subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            terminate();
+            sendBroadcast(new TerminatedBroadcast(getName()));  
         });
     }
     

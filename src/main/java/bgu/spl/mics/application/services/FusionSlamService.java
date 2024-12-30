@@ -40,7 +40,7 @@ public class FusionSlamService extends MicroService {
 
         // Register for TickBroadcast
         subscribeBroadcast(TickBroadcast.class, broadcast -> {
-            if (broadcast.isFinalTick()) {
+            if (broadcast.isFinalTick()) { //maybe fix this because is taken care og in time service 
                 terminate();
             }
             ////-------לבדוק אם צריך לעדכן זמנים כי פיוזן סלאם לא מתשתשת בזמן ולבדוק final tick
@@ -49,6 +49,8 @@ public class FusionSlamService extends MicroService {
         // Register for TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
             fusionSlam.decreaseServiceCounter();
+            //we think this one is diffrenet- how should we deal with this? 
+            
             //------------צריך לקרות פה דברים
         });
 

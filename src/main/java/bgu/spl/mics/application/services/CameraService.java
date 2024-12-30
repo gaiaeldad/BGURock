@@ -90,8 +90,13 @@ public class CameraService extends MicroService {
 //--------------------------------------זה לא נכון צריך לתקן ולהבין מה לעשות עם ההרשמות האלו ------------------------------------------------------------
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            // what should we do here? אנחנו מזניחים את זב ומתקדמים הלא
+                if ("TimeService".equals(broadcast.getSenderName())) {
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName()));  
+                } 
         });
+        //if its from the other services we think do nothing 
+        
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             terminate();

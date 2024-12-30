@@ -58,7 +58,10 @@ public class LiDarService extends MicroService {
         });
 
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-        //----------------------fill- what should we do here 
+            if ("TimeService".equals(broadcast.getSenderName())) {
+                terminate();
+                sendBroadcast(new TerminatedBroadcast(getName()));  
+            } 
         });
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             terminate();
