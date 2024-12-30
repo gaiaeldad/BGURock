@@ -54,6 +54,7 @@ public class PoseService extends MicroService {
         //--------------------------------------לבדוק------------------------------------------------------------
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
+                gpsimu.setStatus(STATUS.DOWN);
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));  
             } 
@@ -61,6 +62,7 @@ public class PoseService extends MicroService {
 
         // Subscribe to CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            gpsimu.setStatus(STATUS.DOWN);
             terminate();
             sendBroadcast(new TerminatedBroadcast(getName()));  
         });

@@ -1,5 +1,10 @@
 package bgu.spl.mics.application.services;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import bgu.spl.mics.*;
 import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.application.messages.*;
@@ -40,16 +45,23 @@ public class FusionSlamService extends MicroService {
 
         // Register for TickBroadcast
         subscribeBroadcast(TickBroadcast.class, broadcast -> {
-            if (broadcast.isFinalTick()) { //maybe fix this because is taken care og in time service 
-                terminate();
-            }
-            ////-------לבדוק אם צריך לעדכן זמנים כי פיוזן סלאם לא מתשתשת בזמן ולבדוק final tick
+            int currentTick = broadcast.getTime();
+            fusionSlam.setCurrentTick(currentTick);
+            // כאן ניתן להוסיף הדפסות או פעולות נוספות אם צריך
         });
+        
 
         // Register for TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
             fusionSlam.decreaseServiceCounter();
-            //we think this one is diffrenet- how should we deal with this? 
+            if (fusionSlam.getserviceCounter() == 0) {
+                // Generate output file
+                terminate();
+                Map<String, Object> lastFrames = new HashMap<>(); // Populate if isError = true
+                int currentTick = fusionSlam.getCurrentTick();
+                List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick); // קבלת כל ה-Pose
+                fusionSlam.generateOutputFile("output_file.json", false, null, null, lastFrames, poses);// איפה הקובץ?
+            }
             
             //------------צריך לקרות פה דברים
         });
@@ -57,6 +69,16 @@ public class FusionSlamService extends MicroService {
         // Register for CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, broadcast -> {
             terminate();
+            // cheak this 
+            boolean isError = true; // Set to true if an error occurred
+            String errorDescription = broadcast.getErrorMessage(); // Populate if isError = true
+            String faultySensor = broadcast.getSenderId(); // Populate if isError = true
+            Map<String, Object> lastFrames = new HashMap<>(); // Populate if isError = true
+            int currentTick = fusionSlam.getCurrentTick();
+            List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick); // קבלת כל ה-Pose עד לנקודת השגיאה
+            fusionSlam.generateOutputFile("output_file.json", isError, errorDescription, faultySensor, lastFrames, poses);// איפה הקובץ?
+            
+
         });
     }
 }

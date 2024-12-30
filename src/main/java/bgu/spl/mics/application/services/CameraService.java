@@ -91,6 +91,7 @@ public class CameraService extends MicroService {
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
                 if ("TimeService".equals(broadcast.getSenderName())) {
+                    camera.setStatus(STATUS.DOWN);
                     terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));  
                 } 
@@ -99,6 +100,7 @@ public class CameraService extends MicroService {
         
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            camera.setStatus(STATUS.DOWN);
             terminate();
             sendBroadcast(new TerminatedBroadcast(getName()));   
         });

@@ -59,11 +59,13 @@ public class LiDarService extends MicroService {
 
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
+                lidarWorkerTracker.setStatus(STATUS.DOWN);
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));  
             } 
         });
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            lidarWorkerTracker.setStatus(STATUS.DOWN);
             terminate();
             sendBroadcast(new TerminatedBroadcast(getName()));
         //should we do more?

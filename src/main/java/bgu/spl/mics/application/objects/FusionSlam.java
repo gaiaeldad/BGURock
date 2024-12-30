@@ -1,6 +1,11 @@
 package bgu.spl.mics.application.objects;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 
 /**
@@ -19,6 +24,7 @@ public class FusionSlam {
     private ArrayList<LandMark> landmarks  = new ArrayList<>(); // Dynamic array of landmarks
     private Map<Integer, Pose> posesByTime = new HashMap<>(); // Map to hold poses by time
     private int serviceCounter = 0;
+    private int currentTick = 0;
     
     
     /**
@@ -150,6 +156,14 @@ public class FusionSlam {
         }
         return sb.toString();
     }
+    public void setCurrentTick (int tick){
+        this.currentTick = tick;
+    }
+
+    public int getCurrentTick() {
+        return currentTick;
+    } 
+
     public boolean isTerminated (){
         return (serviceCounter <= 0);
     }
@@ -162,4 +176,52 @@ public class FusionSlam {
     public void decreaseServiceCounter() {
         this.serviceCounter--;
     }   
+    public void setserviceCounter(int count){
+        this.serviceCounter = count;
+    }
+
+    public void generateOutputFile(String filePath, boolean isError, String errorDescription, String faultySensor, Map<String, Object> lastFrames, List<Pose> poses) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        Map<String, Object> outputData = new HashMap<>();
+
+        // Add statistics
+        StatisticalFolder stats = StatisticalFolder.getInstance();
+        Map<String, Integer> statistics = new HashMap<>();
+        statistics.put("systemRuntime", stats.getSystemRuntime());
+        statistics.put("numDetectedObjects", stats.getNumDetectedObjects());
+        statistics.put("numTrackedObjects", stats.getNumTrackedObjects());
+        statistics.put("numLandmarks", stats.getNumLandmarks());
+        outputData.put("statistics", statistics);
+
+        // Add landmarks (world map)
+        outputData.put("landMarks", getLandmarks());
+
+        // Handle error-specific fields
+        if (isError) {
+            outputData.put("Error", errorDescription);
+            outputData.put("faultySensor", faultySensor);
+            outputData.put("lastFrames", lastFrames);
+            outputData.put("poses", poses);
+        }
+
+        // Write JSON to file
+        try (FileWriter writer = new FileWriter(filePath)) {
+            gson.toJson(outputData, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }    
+
+    public List<Pose> getPosesUpToTick(int tick) {
+        List<Pose> poses = new ArrayList<>();
+        for (Map.Entry<Integer, Pose> entry : posesByTime.entrySet()) {
+            if (entry.getKey() <= tick) { // סינון לפי זמן
+                poses.add(entry.getValue());
+            }
+        }
+        poses.sort(Comparator.comparingInt(Pose::getTime)); // מיון לפי זמן
+        return poses;
+    }
+    
+
 }
