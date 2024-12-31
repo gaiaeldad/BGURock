@@ -123,6 +123,7 @@ public class MessageBusImpl implements MessageBus {
             }
             queue.put(e); // הכנס את האירוע לתור
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt(); // שחזר את מצב ה-interrupt
             ex.printStackTrace(); // טיפול בשגיאת InterruptedException
         }
 
