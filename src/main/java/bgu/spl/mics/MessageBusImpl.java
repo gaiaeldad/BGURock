@@ -33,7 +33,9 @@ public class MessageBusImpl implements MessageBus {
         eventSubscribers.putIfAbsent(type, new LinkedList<>());
         Queue<MicroService> subscribers = eventSubscribers.get(type);
         synchronized (subscribers) {
-            subscribers.add(m);
+            if (!subscribers.contains(m)) { // מוודא שהמיקרו-שירות לא נרשם פעמיים
+                subscribers.add(m);
+            }
         }
     }
 
@@ -41,7 +43,11 @@ public class MessageBusImpl implements MessageBus {
     public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
         broadcastSubscribers.putIfAbsent(type, new ArrayList<>());
         List<MicroService> subscribers = broadcastSubscribers.get(type);
-        subscribers.add(m);
+        synchronized (subscribers) {
+            if (!subscribers.contains(m)) { // מוודא שהמיקרו-שירות לא נרשם פעמיים
+                subscribers.add(m);
+            }
+        }
 
     }
 
@@ -101,7 +107,7 @@ public class MessageBusImpl implements MessageBus {
         if (subscribers == null || subscribers.isEmpty()) { // אם אין מנויים
             return null; // החזר null במקום לנסות לגשת ל-subscribe null
         }
-        // אם אין מנויים, מחזיר null
+
         MicroService selectedService;
         synchronized (subscribers) {
             // בוחר מיקרו-שירות לשלוח אליו את האירוע (בחרנו כאן את הראשון ברשימה)
@@ -131,7 +137,7 @@ public class MessageBusImpl implements MessageBus {
         return future;
     }
 
-    @Override
+    @Override // ours
     public void unregister(MicroService m) {
         microServiceQueues.remove(m);
         for (Queue<MicroService> subscribers : eventSubscribers.values()) {
@@ -144,26 +150,32 @@ public class MessageBusImpl implements MessageBus {
         }
     }
 
-    /**
-     * מחפש את ההודעה הבאה בתור של המיקרו-שירות וממתין לה אם אין.
-     * במקרה שאין הודעה, המיקרו-שירות יחכה עד שתהיה אחת.
-     */
+    // chat
+    @Override
+    public void unregister(MicroService m) {
+        microServiceQueues.remove(m);
+        for (Queue<MicroService> subscribers : eventSubscribers.values()) {
+            synchronized (subscribers) {
+                subscribers.removeIf(ms -> ms.equals(m));
+            }
+        }
+        for (List<MicroService> subscribers : broadcastSubscribers.values()) {
+            synchronized (subscribers) {
+                subscribers.removeIf(ms -> ms.equals(m));
+            }
+        }
+    }
 
     @Override
     public Message awaitMessage(MicroService m) throws InterruptedException {
-        // בדוק אם המיקרו-שירות רשום
         if (!microServiceQueues.containsKey(m)) {
             throw new IllegalStateException("MicroService is not registered with the MessageBus.");
         }
-        // אחזר את התור של המיקרו-שירות
         BlockingQueue<Message> queue = microServiceQueues.get(m);
-        // אם התור לא קיים (לא סביר), זרוק שגיאה
         if (queue == null) {
             throw new IllegalStateException("Queue for the MicroService is missing.");
         }
-
-        // חכה להודעה בתור (פעולה חסימתית)
-        return queue.take(); // מחכה עד שמגיעה הודעה
+        return queue.take();
     }
 
     public Map<MicroService, BlockingQueue<Message>> getMicroServiceQueues() {
