@@ -22,15 +22,15 @@ import java.util.PriorityQueue;
  * LiDarService is responsible for processing data from the LiDAR sensor and
  * sending TrackedObjectsEvents to the FusionSLAM service.
  * 
- * This service interacts with the LiDarWorkerTracker object to retrieve and process
+ * This service interacts with the LiDarWorkerTracker object to retrieve and
+ * process
  * cloud point data and updates the system's StatisticalFolder upon sending its
  * observations.
  */
 public class LiDarService extends MicroService {
 
     private final LiDarWorkerTracker lidarWorkerTracker;
-    private  PriorityQueue<TrackedObjectsEvent> eventQueue;
-
+    private PriorityQueue<TrackedObjectsEvent> eventQueue;
 
     public LiDarService(String name, LiDarWorkerTracker lidarWorkerTracker) {
         super(name);
@@ -53,57 +53,72 @@ public class LiDarService extends MicroService {
                 complete(readyEvent.getHandeledEvent(), true);
                 sendEvent(readyEvent);
                 StatisticalFolder.getInstance().updateNumDetectedObjects(
-                    readyEvent.getTrackedObjects().size());
-            }  
+                        readyEvent.getTrackedObjects().size());
+            }
         });
 
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
                 lidarWorkerTracker.setStatus(STATUS.DOWN);
                 terminate();
-                sendBroadcast(new TerminatedBroadcast(getName()));  
-            } 
+                sendBroadcast(new TerminatedBroadcast(getName()));
+            }
         });
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             lidarWorkerTracker.setStatus(STATUS.DOWN);
             terminate();
             sendBroadcast(new TerminatedBroadcast(getName()));
-        //should we do more?
+            // should we do more?
         });
-    
-        //--------------------לוודא את עניין הזמנים שוב
+
+        // --------------------לוודא את עניין הזמנים שוב
         subscribeEvent(DetectObjectsEvent.class, event -> {
-            if(lidarWorkerTracker.getStatus()==STATUS.UP){   
-                List<TrackedObject> TrackedObjects = lidarWorkerTracker.prosseingEvent(event.getStampedDetectedObjects());
-               if (lidarWorkerTracker.getStatus()==STATUS.ERROR){
+            if (lidarWorkerTracker.getStatus() == STATUS.UP) {
+                List<TrackedObject> TrackedObjects = lidarWorkerTracker
+                        .prosseingEvent(event.getStampedDetectedObjects());
+                if (lidarWorkerTracker.getStatus() == STATUS.ERROR) {
                     terminate();
-                    sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected", this.getName()));
-               }
-               else{
-                    int designatedTime = event.getStampedDetectedObjects().getTime() + lidarWorkerTracker.getFrequency();
+                    sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected",
+                            this.getName()));
+                } else {
+                    int designatedTime = event.getStampedDetectedObjects().getTime()
+                            + lidarWorkerTracker.getFrequency();
                     int currTime = lidarWorkerTracker.getCurrentTick();
-                    TrackedObjectsEvent toSendEvent = (new TrackedObjectsEvent(event, event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));
-                    if (designatedTime <= currTime){ /////----------לבדוק תנאי ראשון
+                    TrackedObjectsEvent toSendEvent = (new TrackedObjectsEvent(event,
+                            event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));
+                    if (designatedTime <= currTime) { ///// ----------לבדוק תנאי ראשון
                         complete(event, true);
                         sendEvent(toSendEvent);
                         StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
-                    }
-                    else{
+                    } else {
                         eventQueue.add(toSendEvent);
                     }
-               }
-               if (lidarWorkerTracker.getStatus() == STATUS.DOWN){//מתי זה הופך ללמטה???
-                    terminate();
-                    sendBroadcast(new TerminatedBroadcast(getName()));  
                 }
-            }
-            else{//down
+                if (lidarWorkerTracker.getStatus() == STATUS.DOWN) {// מתי זה הופך ללמטה???
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName()));
+                }
+            } else {// down
                 terminate();
-                sendBroadcast(new TerminatedBroadcast(getName()));    
-            }          
+                sendBroadcast(new TerminatedBroadcast(getName()));
+            }
         });
 
-
     }
-        
+
+    public void testTerminate() {// added this for the test
+        terminate();
+    }
+
+    public boolean isTerminatedForTest() {// added this for the test
+        try {
+            java.lang.reflect.Field field = MicroService.class.getDeclaredField("terminated");
+            field.setAccessible(true); // Make the field accessible
+            return field.getBoolean(this);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
