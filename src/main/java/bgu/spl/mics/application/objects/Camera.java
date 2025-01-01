@@ -26,7 +26,6 @@ public class Camera {
         this.id = id;
         this.frequency = frequency;
         this.status = STATUS.UP;
-        maxTime = 0;
         errMString = null;
         loadDetectedObjectsFromFile(filePath, cameraKey);
     }
@@ -59,7 +58,7 @@ public class Camera {
                     if ("ERROR".equals(obj.getId())) {
                         errMString = obj.getDescription();
                         setStatus(STATUS.ERROR);
-                        break;
+                        return null;
                     }
                 }
                 return stampedObject;
@@ -68,22 +67,27 @@ public class Camera {
         return null;
     }
 
-    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {// need to fix this
+    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {
         try (FileReader reader = new FileReader(filePath)) {
             Gson gson = new Gson();
-            java.lang.reflect.Type type = new TypeToken<Map<String, List<StampedDetectedObject>>>() {
+            java.lang.reflect.Type type = new TypeToken<Map<String, List<List<StampedDetectedObject>>>>() {
             }.getType();
-            Map<String, List<StampedDetectedObject>> cameraData = gson.fromJson(reader, type);
-            List<StampedDetectedObject> cameraObjects = cameraData.get(cameraKey);
-
-            if (cameraObjects != null) {
+            Map<String, List<List<StampedDetectedObject>>> cameraData = gson.fromJson(reader, type);
+            List<List<StampedDetectedObject>> nestedCameraObjects = cameraData.get(cameraKey);
+            if (nestedCameraObjects != null) {
+                List<StampedDetectedObject> cameraObjects = new ArrayList<>();
+                for (List<StampedDetectedObject> list : nestedCameraObjects) {
+                    cameraObjects.addAll(list);
+                }
                 detectedObjectsList = new ArrayList<>(cameraObjects);
                 maxTime = cameraObjects.stream().mapToInt(StampedDetectedObject::getTime).max().orElse(0);
             } else {
-                detectedObjectsList = new ArrayList<>(); // No data for this camera, initialize empty list
+                detectedObjectsList = new ArrayList<>();
             }
-        } catch (IOException ignored) {
-            detectedObjectsList = new ArrayList<>(); // On error, initialize empty list
+        } catch (IOException e) {
+            detectedObjectsList = new ArrayList<>();
+        } catch (Exception e) {
+            detectedObjectsList = new ArrayList<>();
         }
     }
 

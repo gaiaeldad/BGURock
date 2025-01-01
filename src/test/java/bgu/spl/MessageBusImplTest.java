@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.*;
 import bgu.spl.mics.*;
+import org.junit.jupiter.api.Test; // JUnit 5
 
 class MessageBusImplTest {
 

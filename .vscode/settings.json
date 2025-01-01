@@ -1,3 +1,10 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.test.report.showAfterExecution": true,
+    "java.test.log.level": "info",
+    "java.test.config": {
+        "workingDirectory": "${workspaceFolder}",
+        "outputDir": ".vscode/test-results"
+    },
+    "java.debug.settings.forceBuildBeforeLaunch": true
 }
