@@ -17,8 +17,8 @@ public class Camera {
 
     private int id;
     private int frequency;
-    private STATUS status; 
-    private List<StampedDetectedObject> detectedObjectsList; 
+    private STATUS status;
+    private List<StampedDetectedObject> detectedObjectsList;
     private int maxTime;
     private String errMString;
 
@@ -42,10 +42,10 @@ public class Camera {
     public STATUS getStatus() {
         return status;
     }
+
     public String getErrMString() {
         return errMString;
     }
-
 
     public List<StampedDetectedObject> getDetectedObjectsList() {
         return detectedObjectsList;
@@ -58,20 +58,21 @@ public class Camera {
                 for (DetectedObject obj : stampedObject.getDetectedObjects()) {
                     if ("ERROR".equals(obj.getId())) {
                         errMString = obj.getDescription();
-                        setStatus(STATUS.ERROR); 
-                        break; 
+                        setStatus(STATUS.ERROR);
+                        break;
                     }
                 }
                 return stampedObject;
             }
         }
-        return null; 
+        return null;
     }
 
-    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {
+    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {// need to fix this
         try (FileReader reader = new FileReader(filePath)) {
             Gson gson = new Gson();
-            java.lang.reflect.Type type = new TypeToken<Map<String, List<StampedDetectedObject>>>() {}.getType();
+            java.lang.reflect.Type type = new TypeToken<Map<String, List<StampedDetectedObject>>>() {
+            }.getType();
             Map<String, List<StampedDetectedObject>> cameraData = gson.fromJson(reader, type);
             List<StampedDetectedObject> cameraObjects = cameraData.get(cameraKey);
 

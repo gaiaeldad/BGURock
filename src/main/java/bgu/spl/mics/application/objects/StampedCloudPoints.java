@@ -5,17 +5,17 @@ import java.util.List;
 
 /**
  * Represents a group of cloud points corresponding to a specific timestamp.
- * Used by the LiDAR system to store and process point cloud data for tracked objects.
+ * Used by the LiDAR system to store and process point cloud data for tracked
+ * objects.
  */
 public class StampedCloudPoints {
-
-    private String id; 
     private int time;
+    private String id;
     private List<List<Double>> cloudPoints; // Updated to List<List<Double>>
 
-    public StampedCloudPoints(String id, int time, List<List<Double>> cloudPoints) {
-        this.id = id;
+    public StampedCloudPoints(int time, String id, List<List<Double>> cloudPoints) {
         this.time = time;
+        this.id = id;
         this.cloudPoints = cloudPoints;
     }
 
@@ -33,6 +33,7 @@ public class StampedCloudPoints {
 
     /**
      * Adds a single cloud point as a List<Double> to the cloudPoints list.
+     * 
      * @param cloudPoint A list containing the x and y coordinates of the point.
      */
     public void addCloudPoint(List<Double> cloudPoint) {
@@ -41,6 +42,7 @@ public class StampedCloudPoints {
 
     /**
      * Converts the List<List<Double>> to a List<CloudPoint>.
+     * 
      * @return A list of CloudPoint objects.
      */
     public List<CloudPoint> listToCloudPoints() {
@@ -56,20 +58,22 @@ public class StampedCloudPoints {
     }
 
     /**
-     * Converts a List<CloudPoint> to a List<List<Double>> and sets it as the cloudPoints field.
+     * Converts a List<CloudPoint> to a List<List<Double>> and sets it as the
+     * cloudPoints field.
+     * 
      * @param cloudPointList A list of CloudPoint objects.
      */
-    /* 
-    public void fromCloudPoints(List<CloudPoint> cloudPointList) {
-        cloudPoints = new ArrayList<>();
-        for (CloudPoint cloudPoint : cloudPointList) {
-            List<Double> point = new ArrayList<>();
-            point.add(cloudPoint.getX());
-            point.add(cloudPoint.getY());
-            cloudPoints.add(point);
-        }
-    }
-*/
+    /*
+     * public void fromCloudPoints(List<CloudPoint> cloudPointList) {
+     * cloudPoints = new ArrayList<>();
+     * for (CloudPoint cloudPoint : cloudPointList) {
+     * List<Double> point = new ArrayList<>();
+     * point.add(cloudPoint.getX());
+     * point.add(cloudPoint.getY());
+     * cloudPoints.add(point);
+     * }
+     * }
+     */
     @Override
     public String toString() {
         return "StampedCloudPoints{id='" + id + "', time=" + time + ", cloudPoints=" + cloudPoints + "}";
