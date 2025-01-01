@@ -7,26 +7,28 @@ import java.util.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-
 /**
- * Manages the fusion of sensor data for simultaneous localization and mapping (SLAM).
- * Combines data from multiple sensors (e.g., LiDAR, camera) to build and update a global map.
- * Implements the Singleton pattern to ensure a single instance of FusionSlam exists.
+ * Manages the fusion of sensor data for simultaneous localization and mapping
+ * (SLAM).
+ * Combines data from multiple sensors (e.g., LiDAR, camera) to build and update
+ * a global map.
+ * Implements the Singleton pattern to ensure a single instance of FusionSlam
+ * exists.
  */
 public class FusionSlam {
     private static class SingletonHolderFusionSlam {// מימוש כמו שהוצג בכיתה
-         private static final FusionSlam INSTANCE = new FusionSlam();
+        private static final FusionSlam INSTANCE = new FusionSlam();
     }
+
     public static FusionSlam getInstance() {
         return SingletonHolderFusionSlam.INSTANCE;
     }
-    
-    private ArrayList<LandMark> landmarks  = new ArrayList<>(); // Dynamic array of landmarks
-    private Map<Integer, Pose> posesByTime = new HashMap<>(); // Map to hold poses by time
+
+    private ArrayList<LandMark> landmarks = new ArrayList<>(); // Dynamic array of landmarks
+    private Map<Integer, Pose> posesByTime = new TreeMap<>(); // Map to hold poses by time
     private int serviceCounter = 0;
     private int currentTick = 0;
-    
-    
+
     /**
      * Updates the current pose of the robot.
      *
@@ -35,12 +37,12 @@ public class FusionSlam {
     public void addPose(Pose pose) {
         posesByTime.put(pose.getTime(), pose); // Add the pose to the map
     }
-    
+
     public Pose getPoseAtTime(int time) {
         return posesByTime.get(time);
     }
 
-    /** 
+    /**
      * Processes a tracked object event to update or add landmarks.
      *
      * @param trackedObjects The list of tracked objects.
@@ -49,25 +51,29 @@ public class FusionSlam {
         for (TrackedObject obj : trackedObjects) {
             String id = obj.getId();
             Pose relaventPose = getPoseAtTime(obj.getTime());
-            if (relaventPose != null){
-                List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), relaventPose);
-                LandMark existingLandmark = findLandMarkById(id);
-                if (existingLandmark != null) {
-                    // Update existing landmark by averaging coordinates
-                    updateLandmarkCoordinates(existingLandmark, globalCoordinates);
-                } else {
-                    // Add new landmark
-                    LandMark newLandmark = new LandMark(id, obj.getDescription(), globalCoordinates);
-                    landmarks.add(newLandmark);
-                    StatisticalFolder.getInstance().updateNumLandmarks(1);
-                }
+            if (relaventPose == null) {// לא אמור לקרות, רק בשביל הבדיקות
+                System.out.println("No pose found for time: " + obj.getTime() + ". Skipping object: " + id);
+                continue; // דילוג על האובייקט אם אין פוזה מתאימה
             }
-            
+            List<CloudPoint> globalCoordinates = transformToGlobal(obj.getCoordinates(), relaventPose);
+            LandMark existingLandmark = findLandMarkById(id);
+            if (existingLandmark != null) {
+                // Update existing landmark by averaging coordinates
+                updateLandmarkCoordinates(existingLandmark, globalCoordinates);
+            } else {
+                // Add new landmark
+                LandMark newLandmark = new LandMark(id, obj.getDescription(), globalCoordinates);
+                landmarks.add(newLandmark);
+                StatisticalFolder.getInstance().updateNumLandmarks(1);
+            }
+
         }
-         
+
     }
+
     /**
-     * Updates the coordinates of an existing landmark by averaging the new coordinates with the old ones.
+     * Updates the coordinates of an existing landmark by averaging the new
+     * coordinates with the old ones.
      *
      * @param existingLandmark The existing landmark to update.
      * @param newCoordinates   The new coordinates to average with the old ones.
@@ -99,7 +105,6 @@ public class FusionSlam {
         existingLandmark.setCoordinates(updatedCoordinates);
     }
 
-
     /**
      * Finds a landmark by its ID.
      *
@@ -122,7 +127,7 @@ public class FusionSlam {
      * @param pose             The current pose of the robot.
      * @return A list of transformed global coordinates.
      */
-    private List<CloudPoint> transformToGlobal(List<CloudPoint> localCoordinates, Pose pose) {
+    public List<CloudPoint> transformToGlobal(List<CloudPoint> localCoordinates, Pose pose) {
         List<CloudPoint> globalCoordinates = new ArrayList<>();
 
         double yawRadians = Math.toRadians(pose.getYaw());
@@ -156,31 +161,37 @@ public class FusionSlam {
         }
         return sb.toString();
     }
-    public void setCurrentTick (int tick){
+
+    public void setCurrentTick(int tick) {
         this.currentTick = tick;
     }
 
     public int getCurrentTick() {
         return currentTick;
-    } 
+    }
 
-    public boolean isTerminated (){
+    public boolean isTerminated() {
         return (serviceCounter <= 0);
     }
-    public int getserviceCounter(){
+
+    public int getserviceCounter() {
         return serviceCounter;
     }
-    public void increasServiceCounter(){
+
+    public void increasServiceCounter() {
         this.serviceCounter++;
     }
+
     public void decreaseServiceCounter() {
         this.serviceCounter--;
-    }   
-    public void setserviceCounter(int count){
+    }
+
+    public void setserviceCounter(int count) {
         this.serviceCounter = count;
     }
 
-    public void generateOutputFile(String filePath, boolean isError, String errorDescription, String faultySensor, Map<String, Object> lastFrames, List<Pose> poses) {
+    public void generateOutputFile(String filePath, boolean isError, String errorDescription, String faultySensor,
+            Map<String, Object> lastFrames, List<Pose> poses) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         Map<String, Object> outputData = new HashMap<>();
 
@@ -193,8 +204,12 @@ public class FusionSlam {
         statistics.put("numLandmarks", stats.getNumLandmarks());
         outputData.put("statistics", statistics);
 
-        // Add landmarks (world map)
-        outputData.put("landMarks", getLandmarks());
+        // Convert landMarks to Map<String, LandMark> for JSON
+        Map<String, LandMark> landMarksMap = new HashMap<>();
+        for (LandMark landmark : getLandmarks()) {
+            landMarksMap.put(landmark.getId(), landmark);
+        }
+        outputData.put("landMarks", landMarksMap);
 
         // Handle error-specific fields
         if (isError) {
@@ -210,18 +225,18 @@ public class FusionSlam {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }    
+    }
 
-    public List<Pose> getPosesUpToTick(int tick) {
+    public List<Pose> getPosesUpToTick(int time) {
         List<Pose> poses = new ArrayList<>();
         for (Map.Entry<Integer, Pose> entry : posesByTime.entrySet()) {
-            if (entry.getKey() <= tick) { // סינון לפי זמן
+            if (entry.getKey() <= time) {
                 poses.add(entry.getValue());
+            } else {
+                break;
             }
         }
-        poses.sort(Comparator.comparingInt(Pose::getTime)); // מיון לפי זמן
         return poses;
     }
-    
 
 }
