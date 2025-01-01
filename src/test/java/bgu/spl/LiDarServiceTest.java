@@ -30,7 +30,7 @@ class LiDarServiceTest {
                 (a, b) -> Integer.compare(a.getTime(), b.getTime()));
     }
 
-    @Test
+    @Test // checking for events that a ready to send now and dont need to go to the queue
     void testPrepareDataAndSendEvent_ReadyForImmediateSend() {
         List<DetectedObject> detectedObjects = new ArrayList<>();
         detectedObjects.add(new DetectedObject("obj1", "Test Object 1"));
@@ -41,6 +41,8 @@ class LiDarServiceTest {
 
         mockTracker.updateTick(5);
 
+        // it will be able to send if the current tick matches or is more than the
+        // designatedTime to send
         List<TrackedObject> trackedObjects = mockTracker.prosseingEvent(stampedObjects);
         int designatedTime = stampedObjects.getTime() + mockTracker.getFrequency();
 
@@ -53,7 +55,8 @@ class LiDarServiceTest {
         assertEquals(trackedObjects.size(), StatisticalFolder.getInstance().getNumTrackedObjects());
     }
 
-    @Test
+    @Test // checking for events that are not ready to send now and need to go to the
+          // queue
     void testPrepareDataAndQueueEvent_NotReadyYet() {
         List<DetectedObject> detectedObjects = new ArrayList<>();
         detectedObjects.add(new DetectedObject("obj1", "Test Object 1"));
