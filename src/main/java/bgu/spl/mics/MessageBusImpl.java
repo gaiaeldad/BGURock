@@ -15,7 +15,7 @@ public class MessageBusImpl implements MessageBus {
     private final Map<Event<?>, Future<?>> eventFutures = new ConcurrentHashMap<>();
     private final Map<MicroService, BlockingQueue<Message>> microServiceQueues = new ConcurrentHashMap<>();
 
-    private static class SingletonHolderMessageBusImpl { // מימוש כמו שהוצג בכיתה
+    private static class SingletonHolderMessageBusImpl { // Implementation as shown in class
         private static final MessageBusImpl INSTANCE = new MessageBusImpl();
     }
 
@@ -33,7 +33,9 @@ public class MessageBusImpl implements MessageBus {
         eventSubscribers.putIfAbsent(type, new LinkedList<>());
         Queue<MicroService> subscribers = eventSubscribers.get(type);
         synchronized (subscribers) {
-            subscribers.add(m);
+            if (!subscribers.contains(m)) { // Ensure the microservice is not registered twice
+                subscribers.add(m);
+            }
         }
     }
 
@@ -41,47 +43,47 @@ public class MessageBusImpl implements MessageBus {
     public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
         broadcastSubscribers.putIfAbsent(type, new ArrayList<>());
         List<MicroService> subscribers = broadcastSubscribers.get(type);
-        subscribers.add(m);
-
+        if (!subscribers.contains(m)) { // Ensure the microservice is not registered twice
+            subscribers.add(m); // Check synchronization
+        }
     }
 
     /**
-     * מעדכן את ה-Future של האירוע, כשהוא מקבל את תוצאת הביצוע.
-     * משתמש במידע שנשלח כדי להחזיר תוצאה ל-Future המתאימה.
+     * Updates the Future of the event when it receives the result of execution.
+     * Uses the sent data to resolve the corresponding Future.
      */
     @Override
     public <T> void complete(Event<T> e, T result) {
         @SuppressWarnings("unchecked")
         Future<T> future = (Future<T>) eventFutures.get(e);
         if (future != null) {
-            future.resolve(result); // עדכון התוצאה
+            future.resolve(result); // Update the result
+            eventFutures.remove(e);
         }
     }
 
     @Override
     public void sendBroadcast(Broadcast b) {
-        // שלוף את רשימת המנויים לשידור מסוג זה
+        // Retrieve the list of subscribers for this broadcast type
         List<MicroService> subscribers = broadcastSubscribers.get(b.getClass());
 
-        // בדוק אם קיימים מנויים
+        // Check if there are any subscribers
         if (subscribers != null && !subscribers.isEmpty()) {
             for (MicroService m : subscribers) {
                 try {
-                    // שלוף את התור של המיקרו-שירות
+                    // Retrieve the queue of the microservice
                     BlockingQueue<Message> queue = microServiceQueues.get(m);
-
-                    // בדוק אם התור קיים
+                    // Check if the queue exists
                     if (queue == null) {
                         throw new IllegalStateException("Queue for the MicroService does not exist.");
                     }
-
-                    // הכנס את ההודעה לתור
+                    // Add the message to the queue
                     queue.put(b);
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // שחזר את מצב ה-interrupt
-                    e.printStackTrace(); // הדפס את ה-stack trace לצורכי דיבוג
+                    Thread.currentThread().interrupt(); // Restore the interrupt status
+                    e.printStackTrace(); // Print the stack trace for debugging
                 } catch (IllegalStateException ex) {
-                    System.err.println("Error: " + ex.getMessage()); // הדפס הודעת שגיאה
+                    System.err.println("Error: " + ex.getMessage()); // Print the error message
                 }
             }
         } else {
@@ -90,44 +92,41 @@ public class MessageBusImpl implements MessageBus {
     }
 
     /**
-     * שולח אירוע למיקרו-שירות שנרשם אליו (אם יש מנוי).
-     * אם יש מנויים, האירוע נשלח לפי עקרון round-robin (ברירת מחדל: המיקרו-שירות
-     * הראשון).
+     * Sends an event to a subscribed microservice (if there is a subscriber).
+     * If there are subscribers, the event is sent according to the round-robin
+     * principle (default: the first microservice).
      */
     @Override
     public <T> Future<T> sendEvent(Event<T> e) {
-        // בודק אם יש מנויים לאירוע מסוג זה
+        // Check if there are subscribers for this event type
         Queue<MicroService> subscribers = eventSubscribers.get(e.getClass());
-        if (subscribers == null || subscribers.isEmpty()) { // אם אין מנויים
-            return null; // החזר null במקום לנסות לגשת ל-subscribe null
+        if (subscribers == null || subscribers.isEmpty()) { // If there are no subscribers
+            return null; // Return null instead of trying to access a null subscriber
         }
-        // אם אין מנויים, מחזיר null
+
         MicroService selectedService;
         synchronized (subscribers) {
-            // בוחר מיקרו-שירות לשלוח אליו את האירוע (בחרנו כאן את הראשון ברשימה)
-            selectedService = subscribers.poll(); // במימוש זה, בחרנו את המיקרו-שירות הראשון
+            // Select a microservice to send the event to (here we chose the first in the
+            // list)
+            selectedService = subscribers.poll(); // In this implementation, we chose the first microservice
             if (selectedService != null) {
-                subscribers.add(selectedService); // מעביר אותו לסוף התור
-            } else {
-                return null; // אין מנויים זמינים
+                subscribers.add(selectedService); // Move it to the end of the queue
+            }
+            if (selectedService == null || !microServiceQueues.containsKey(selectedService)) {
+                return null; // No valid service to handle the event
             }
         }
         Future<T> future = new Future<>();
-        // שומרים את ה-Future של האירוע כך שנוכל להחזיר את התוצאה בהמשך
+        // Save the Future of the event so we can return the result later
         eventFutures.putIfAbsent(e, future);
         try {
-            // : בדוק אם תור ה-MicroService קיים לפני הכנסת ההודעה
-            BlockingQueue<Message> queue = microServiceQueues.get(selectedService);
-            if (queue == null) { // אם התור חסר, זרוק שגיאה
-                throw new IllegalStateException("Queue for the MicroService does not exist.");
-            }
-            queue.put(e); // הכנס את האירוע לתור
+            microServiceQueues.get(selectedService).put(e); // Add the event to the queue
         } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt(); // שחזר את מצב ה-interrupt
-            ex.printStackTrace(); // טיפול בשגיאת InterruptedException
+            Thread.currentThread().interrupt(); // Restore the interrupt status
+            ex.printStackTrace(); // Handle InterruptedException
         }
 
-        // מחזירים את ה-Future של האירוע
+        // Return the Future of the event
         return future;
     }
 
@@ -144,30 +143,74 @@ public class MessageBusImpl implements MessageBus {
         }
     }
 
-    /**
-     * מחפש את ההודעה הבאה בתור של המיקרו-שירות וממתין לה אם אין.
-     * במקרה שאין הודעה, המיקרו-שירות יחכה עד שתהיה אחת.
-     */
-
     @Override
     public Message awaitMessage(MicroService m) throws InterruptedException {
-        // בדוק אם המיקרו-שירות רשום
         if (!microServiceQueues.containsKey(m)) {
             throw new IllegalStateException("MicroService is not registered with the MessageBus.");
         }
-        // אחזר את התור של המיקרו-שירות
         BlockingQueue<Message> queue = microServiceQueues.get(m);
-        // אם התור לא קיים (לא סביר), זרוק שגיאה
         if (queue == null) {
-            throw new IllegalStateException("Queue for the MicroService is missing.");
+            throw new IllegalStateException("MicroService " + m.getName() + " is not registered.");
         }
-
-        // חכה להודעה בתור (פעולה חסימתית)
-        return queue.take(); // מחכה עד שמגיעה הודעה
+        return queue.take();
     }
 
     public Map<MicroService, BlockingQueue<Message>> getMicroServiceQueues() {
         return microServiceQueues;
+    }
+
+    // -------------------------------פונקציות עזר
+    // לטסטים----------------------------------------
+    // פונקציה 1: בודקת אם המיקרו-שירות רשום
+    public boolean isRegistered(MicroService micro) {
+        return microServiceQueues.containsKey(micro);
+    }
+
+    // פונקציה 2: מחזירה את מספר המיקרו-שירותים הרשומים
+    public int getNumberOfRegisters() {
+        return microServiceQueues.size();
+    }
+
+    // פונקציה 3: בודקת אם המיקרו-שירות מנוי לאירוע מסוג Broadcast
+    public boolean isSubscribedToBroad(Class<? extends Broadcast> type, MicroService listener) {
+        List<MicroService> subscribers = broadcastSubscribers.get(type);
+        return subscribers != null && subscribers.contains(listener);
+    }
+
+    // פונקציה 4: מחזירה את מספר המנויים לאירוע מסוג Broadcast
+    public int getNumberOfSubscribersToBroad(Class<? extends Broadcast> type) {
+        List<MicroService> subscribers = broadcastSubscribers.get(type);
+        if (subscribers == null) {
+            return 0;
+        } else {
+            return subscribers.size();
+        }
+    }
+
+    // פונקציה 5: בודקת אם המיקרו-שירות מנוי לאירוע מסוג Event
+    public boolean isSubscribedToEvent(Class<? extends Event<?>> type, MicroService listener) {
+        Queue<MicroService> subscribers = eventSubscribers.get(type);
+        return subscribers != null && subscribers.contains(listener);
+    }
+
+    // פונקציה 6: מחזירה את מספר המנויים לאירוע מסוג Event
+    public int getNumberOfSubscribersToEvent(Class<? extends Event<?>> type) {
+        Queue<MicroService> subscribers = eventSubscribers.get(type); // Corrected to eventSubscribers
+        if (subscribers == null) {
+            return 0;
+        } else {
+            return subscribers.size();
+        }
+    }
+
+    // פונקציה 7
+    public int getQueueSize(MicroService m) {
+        BlockingQueue<Message> queue = microServiceQueues.get(m);
+        if (queue == null) {
+            return 0;
+        } else {
+            return queue.size();
+        }
     }
 
 }
