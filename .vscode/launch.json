@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "java",
+        "name": "Run GurionRockRunner",
+        "request": "launch",
+        "mainClass": "bgu.spl.mics.application.GurionRockRunner",
+        "args": [
+          "example_input_2/configuration_file.json"
+        ],
+        "projectName": "spl224ass2"
+      }
+    ]
+  }

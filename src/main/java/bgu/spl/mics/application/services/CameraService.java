@@ -26,7 +26,6 @@ public class CameraService extends MicroService {
     private final Camera camera;
     private Queue<DetectObjectsEvent> eventQueue;
 
-
     /**
      * Constructor for CameraService.
      *
@@ -41,7 +40,8 @@ public class CameraService extends MicroService {
 
     /**
      * Initializes the CameraService.
-     * Registers the service to handle TickBroadcasts and sets up callbacks for sending
+     * Registers the service to handle TickBroadcasts and sets up callbacks for
+     * sending
      * DetectObjectsEvents.
      */
     @Override
@@ -49,16 +49,17 @@ public class CameraService extends MicroService {
         // Subscribe to TickBroadcast
         subscribeBroadcast(TickBroadcast.class, (TickBroadcast broadcast) -> {
             int currentTime = broadcast.getTime();
+            System.out.println(getName() + ": got a tick, " + currentTime + " and status is: " + camera.getStatus());
 
             // Check if the camera is active and it's time to send an event
-            //--------------------לוודא את עניין הזמנים שוב
+
             if (camera.getStatus() == STATUS.UP) {
                 StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime);
-                if (camera.getStatus() == STATUS.ERROR){
+                if (camera.getStatus() == STATUS.ERROR) {
+                    System.out.println(getName() + ": got an error");
                     terminate();
                     sendBroadcast(new CrashedBroadcast(camera.getErrMString(), this.getName()));
-                }
-                else{
+                } else {
                     if (detectedObject != null) {
                         int sendTime = currentTime + camera.getFrequency();
                         DetectObjectsEvent event = new DetectObjectsEvent(detectedObject, getName(), sendTime);
@@ -72,38 +73,39 @@ public class CameraService extends MicroService {
                         }
                         DetectObjectsEvent readyEvent = eventQueue.poll(); // Remove the first event (FIFO)
                         sendEvent(readyEvent);
+                        System.out.println(getName() + ": sent an event");
                         StatisticalFolder.getInstance().updateNumDetectedObjects(
-                                readyEvent.getStampedDetectedObjects().getDetectedObjects().size()
-                        );
-                    }  
+                                readyEvent.getStampedDetectedObjects().getDetectedObjects().size());
+                    }
                 }
-                if (camera.getStatus() == STATUS.DOWN){
+                if (camera.getStatus() == STATUS.DOWN) {
+                    System.out.println(getName() + ": is down so terminating");
                     terminate();
-                    sendBroadcast(new TerminatedBroadcast(getName()));  
+                    sendBroadcast(new TerminatedBroadcast(getName()));
                 }
-            }
-            else {//camers is down 
+            } else {// camers is down
                 terminate();
-                sendBroadcast(new TerminatedBroadcast(getName()));     
+                sendBroadcast(new TerminatedBroadcast(getName()));
             }
         });
-//--------------------------------------זה לא נכון צריך לתקן ולהבין מה לעשות עם ההרשמות האלו ------------------------------------------------------------
+        // --------------------------------------זה לא נכון צריך לתקן ולהבין מה לעשות עם
+        // ההרשמות האלו ------------------------------------------------------------
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-                if ("TimeService".equals(broadcast.getSenderName())) {
-                    camera.setStatus(STATUS.DOWN);
-                    terminate();
-                    sendBroadcast(new TerminatedBroadcast(getName()));  
-                } 
+            if ("TimeService".equals(broadcast.getSenderName())) {
+                camera.setStatus(STATUS.DOWN);
+                terminate();
+                sendBroadcast(new TerminatedBroadcast(getName()));
+            }
         });
-        //if its from the other services we think do nothing 
-        
+        // if its from the other services we think do nothing
+
         // Subscribe to TerminatedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             camera.setStatus(STATUS.DOWN);
             terminate();
-            sendBroadcast(new TerminatedBroadcast(getName()));   
+            sendBroadcast(new TerminatedBroadcast(getName()));
         });
-        
+
     }
 }

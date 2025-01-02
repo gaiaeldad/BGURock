@@ -7,20 +7,20 @@ import bgu.spl.mics.application.objects.FusionSlam;
 import bgu.spl.mics.application.objects.StatisticalFolder;
 
 /**
- * TimeService acts as the global timer for the system, broadcasting TickBroadcast messages
+ * TimeService acts as the global timer for the system, broadcasting
+ * TickBroadcast messages
  * at regular intervals and controlling the simulation's duration.
  */
 public class TimeService extends MicroService {
 
-    private final int tickTime;  // Duration of each tick in milliseconds
-    private final int duration;  // Total number of ticks
-
+    private final int tickTime; // Duration of each tick in milliseconds
+    private final int duration; // Total number of ticks
 
     /**
      * Constructor for TimeService.
      *
-     * @param tickTime  The duration of each tick in milliseconds.
-     * @param duration  The total number of ticks before the service terminates.
+     * @param tickTime The duration of each tick in milliseconds.
+     * @param duration The total number of ticks before the service terminates.
      */
     public TimeService(int tickTime, int duration) {
         super("TimeService");
@@ -30,13 +30,15 @@ public class TimeService extends MicroService {
 
     /**
      * Initializes the TimeService.
-     * Starts broadcasting TickBroadcast messages and terminates after the specified duration.
+     * Starts broadcasting TickBroadcast messages and terminates after the specified
+     * duration.
      */
     @Override
     protected void initialize() {
         System.out.println("TimeService initialized.");
         try {
-            for (int currentTick = 1; currentTick <= duration && !FusionSlam.getInstance().isTerminated(); currentTick++) {
+            for (int currentTick = 1; currentTick <= duration
+                    && !FusionSlam.getInstance().isTerminated(); currentTick++) {
                 // Broadcast the current tick
                 sendBroadcast(new TickBroadcast(currentTick, duration));
                 System.out.println("TimeService broadcasted Tick: " + currentTick);
@@ -57,4 +59,3 @@ public class TimeService extends MicroService {
         }
     }
 }
-

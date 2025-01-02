@@ -51,6 +51,8 @@ public class LiDarService extends MicroService {
                 }
                 TrackedObjectsEvent readyEvent = eventQueue.poll();
                 complete(readyEvent.getHandeledEvent(), true);
+                System.out.println(getName() + ": sent an event");
+
                 sendEvent(readyEvent);
                 StatisticalFolder.getInstance().updateNumDetectedObjects(
                         readyEvent.getTrackedObjects().size());
@@ -60,6 +62,7 @@ public class LiDarService extends MicroService {
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
                 lidarWorkerTracker.setStatus(STATUS.DOWN);
+                System.out.println(getName() + ": is terminated");
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));
             }
@@ -77,6 +80,7 @@ public class LiDarService extends MicroService {
                 List<TrackedObject> TrackedObjects = lidarWorkerTracker
                         .prosseingEvent(event.getStampedDetectedObjects());
                 if (lidarWorkerTracker.getStatus() == STATUS.ERROR) {
+                    System.out.println(getName() + ": has an eror");
                     terminate();
                     sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected",
                             this.getName()));
@@ -88,17 +92,20 @@ public class LiDarService extends MicroService {
                             event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));
                     if (designatedTime <= currTime) { ///// ----------לבדוק תנאי ראשון
                         complete(event, true);
+                        System.out.println(getName() + ": sent trackedobject event");
                         sendEvent(toSendEvent);
                         StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
                     } else {
                         eventQueue.add(toSendEvent);
                     }
                 }
-                if (lidarWorkerTracker.getStatus() == STATUS.DOWN) {// מתי זה הופך ללמטה???
+                if (lidarWorkerTracker.getStatus() == STATUS.DOWN) {
+                    System.out.println(getName() + ": is terminated");
                     terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));
                 }
             } else {// down
+                System.out.println(getName() + ": is terminated");
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));
             }
