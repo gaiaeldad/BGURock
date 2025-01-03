@@ -43,6 +43,7 @@ public class FusionSlamService extends MicroService {
                 TrackedObjectsQueue.add(event);
             } else {
                 fusionSlam.processTrackedObjects(event.getTrackedObjects());
+                System.out.println("the  tracked object event has been processed in: " + getName());
                 complete(event, true);
             }
 
@@ -59,6 +60,7 @@ public class FusionSlamService extends MicroService {
                 if (fusionSlam.getPoseAtTime(trackedObjectsTime) != null) {
                     TrackedObjectsEvent e = TrackedObjectsQueue.poll();
                     fusionSlam.processTrackedObjects(e.getTrackedObjects());
+                    System.out.println("the poseevent has been processed in: " + getName());
                     complete(e, true);
                 } else {
                     // Stop processing if the required Pose is not available
@@ -72,22 +74,24 @@ public class FusionSlamService extends MicroService {
         subscribeBroadcast(TickBroadcast.class, broadcast -> {
             int currentTick = broadcast.getTime();
             fusionSlam.setCurrentTick(currentTick);
-            // כאן ניתן להוסיף הדפסות או פעולות נוספות אם צריך
+
         });
 
         // Register for TerminatedBroadcast
-        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
-            fusionSlam.decreaseServiceCounter();
+        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {//// לעדכן שלא הגיע מטיים
+            if (broadcast.getSenderName() != "TimeService") {
+                fusionSlam.decreaseServiceCounter();
+            }
             if (fusionSlam.getserviceCounter() == 0) {
                 // Generate output file
                 terminate();
+                System.out.println(getName() + ": is terminated");
                 Map<String, Object> lastFrames = new HashMap<>(); // Populate if isError = true
                 int currentTick = fusionSlam.getCurrentTick();
-                List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick); // קבלת כל ה-Pose
+                List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick);
                 fusionSlam.generateOutputFile("output_file.json", false, null, null, lastFrames, poses);// איפה הקובץ?
             }
 
-            // ------------צריך לקרות פה דברים
         });
         // ----------------לתקן last franme רשימה ריקה ---------------------
 
