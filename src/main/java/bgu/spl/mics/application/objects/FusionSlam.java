@@ -27,7 +27,7 @@ public class FusionSlam {
 
     private ArrayList<LandMark> landmarks = new ArrayList<>(); // Dynamic array of landmarks
     private Map<Integer, Pose> posesByTime = new TreeMap<>(); // Map to hold poses by time
-    private int serviceCounter = 0;
+    private int serviceCounter = 1;
     private int currentTick = 0;
     // i added for main-------------
     private final AtomicInteger activeCameras = new AtomicInteger(0);

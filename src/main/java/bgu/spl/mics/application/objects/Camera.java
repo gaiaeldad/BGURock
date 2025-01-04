@@ -28,20 +28,20 @@ public class Camera {
         this.id = id;
         this.frequency = frequency;
         this.status = STATUS.UP;
-        maxTime = 0;
+        this.maxTime = 0;
         errMString = null;
         loadDetectedObjectsFromFile(filePath, cameraKey);
     }
 
     // Constructor for main ----------------
-    public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList) {
+    public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList, int maxTime) {
         this.id = id;
         this.frequency = frequency;
         this.status = STATUS.UP; // Default status is UP
         this.detectedObjectsList = detectedObjectsList != null
                 ? Collections.unmodifiableList(detectedObjectsList)
                 : Collections.emptyList(); // Ensure immutability of preloaded data
-        this.maxTime = 0;
+        this.maxTime = maxTime;
         this.errMString = null;
     }
 

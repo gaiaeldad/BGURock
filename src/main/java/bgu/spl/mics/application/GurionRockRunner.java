@@ -68,6 +68,7 @@ public class GurionRockRunner {
                     int id = cameraJson.get("id").getAsInt();
                     int frequency = cameraJson.get("frequency").getAsInt();
                     String cameraKey = cameraJson.get("camera_key").getAsString();
+                    int duration = config.get("Duration").getAsInt();
 
                     // Retrieve stamped detected objects for this camera
                     JsonArray stampedObjectsJson = cameraData.getAsJsonArray(cameraKey);
@@ -89,7 +90,7 @@ public class GurionRockRunner {
                     }
 
                     // Create Camera object and corresponding CameraService
-                    Camera camera = new Camera(id, frequency, detectedObjectsList);
+                    Camera camera = new Camera(id, frequency, detectedObjectsList, duration);
                     cameraServices.add(new CameraService(camera));
                 }
             }
@@ -114,7 +115,8 @@ public class GurionRockRunner {
                 int id = lidarJson.getAsJsonObject().get("id").getAsInt();
                 String name = "LiDarService" + id;
                 int frequency = lidarJson.getAsJsonObject().get("frequency").getAsInt();
-                LiDarWorkerTracker lidarWorker = new LiDarWorkerTracker(id, frequency, lidarDataPath);
+                int duration = config.get("Duration").getAsInt();
+                LiDarWorkerTracker lidarWorker = new LiDarWorkerTracker(id, frequency, lidarDataPath, duration);
                 lidarServices.add(new LiDarService(name, lidarWorker));
             }
 
@@ -128,9 +130,10 @@ public class GurionRockRunner {
                 java.lang.reflect.Type poseListType = new com.google.gson.reflect.TypeToken<List<Pose>>() {
                 }.getType();
                 List<Pose> poseList = gson.fromJson(poseReader, poseListType);
+                int duration = config.get("Duration").getAsInt();
 
                 // Create GPSIMU and initialize PoseService
-                GPSIMU gpsimu = new GPSIMU(poseList);
+                GPSIMU gpsimu = new GPSIMU(poseList, duration);
                 poseService = new PoseService(gpsimu);
             }
 

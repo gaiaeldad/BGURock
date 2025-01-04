@@ -20,11 +20,11 @@ public class GPSIMU {
     private List<Pose> poseList;
     private int maxTime;
 
-    public GPSIMU(List<Pose> poseList) { // Constructor for main---------------
+    public GPSIMU(List<Pose> poseList, int maxTime) { // Constructor for main---------------
         currentTick = 0;
         this.status = STATUS.UP; // Default status
         this.poseList = poseList;
-        this.maxTime = calculateMaxTime(); // Calculate the maximum time
+        this.maxTime = maxTime; // Calculate the maximum time
     }
 
     public GPSIMU(String filePath) {
