@@ -3,12 +3,12 @@ package bgu.spl.mics.application.objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StatisticalFolder {
-  
+
     // Fields using AtomicInteger for thread-safety
-    private AtomicInteger systemRuntime;          // The total runtime of the system (in ticks)
-    private AtomicInteger numDetectedObjects;     // The cumulative count of objects detected by all cameras
-    private AtomicInteger numTrackedObjects;      // The cumulative count of objects tracked by all LiDAR workers
-    private AtomicInteger numLandmarks;           // The total number of unique landmarks identified
+    private AtomicInteger systemRuntime; // The total runtime of the system (in ticks)
+    private AtomicInteger numDetectedObjects; // The cumulative count of objects detected by all cameras
+    private AtomicInteger numTrackedObjects; // The cumulative count of objects tracked by all LiDAR workers
+    private AtomicInteger numLandmarks; // The total number of unique landmarks identified
 
     // Constructor
     public StatisticalFolder() {
@@ -17,6 +17,7 @@ public class StatisticalFolder {
         this.numTrackedObjects = new AtomicInteger(0);
         this.numLandmarks = new AtomicInteger(0);
     }
+
     // Singleton Holder for thread-safe מימוש כמו בכיתה
     private static class SingletonHolderStatisticalFolder {
         private static final StatisticalFolder INSTANCE = new StatisticalFolder();
@@ -25,10 +26,10 @@ public class StatisticalFolder {
     public static StatisticalFolder getInstance() {
         return SingletonHolderStatisticalFolder.INSTANCE;
     }
-    
+
     // Getters
     public int getSystemRuntime() {
-        return systemRuntime.get();   
+        return systemRuntime.get();
     }
 
     public int getNumDetectedObjects() {
@@ -44,8 +45,8 @@ public class StatisticalFolder {
     }
 
     // Methods to update the statistics
-    public void updateSystemRuntime(int timeTick) {
-        this.systemRuntime.addAndGet(timeTick); // Increment system runtime by the time tick
+    public void IncrementSystemRuntime() {
+        this.systemRuntime.incrementAndGet(); // Increment system runtime by the time tick
     }
 
     public void updateNumDetectedObjects(int detectedObjectsCount) {
@@ -58,5 +59,13 @@ public class StatisticalFolder {
 
     public void updateNumLandmarks(int newLandmarksCount) {
         this.numLandmarks.addAndGet(newLandmarksCount); // Increment landmarks count
+    }
+
+    // Add a reset method for testing
+    public void reset() {
+        systemRuntime.set(0);
+        numDetectedObjects.set(0);
+        numTrackedObjects.set(0);
+        numLandmarks.set(0);
     }
 }

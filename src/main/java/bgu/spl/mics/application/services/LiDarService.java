@@ -10,10 +10,6 @@ import bgu.spl.mics.application.objects.LiDarWorkerTracker;
 import bgu.spl.mics.application.objects.STATUS;
 import bgu.spl.mics.application.objects.TrackedObject;
 import bgu.spl.mics.application.objects.StatisticalFolder;
-
-//import static org.junit.Assert.assertSame;
-
-//import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -27,51 +23,62 @@ import java.util.PriorityQueue;
  * cloud point data and updates the system's StatisticalFolder upon sending its
  * observations.
  */
+
 public class LiDarService extends MicroService {
 
     private final LiDarWorkerTracker lidarWorkerTracker;
-    private PriorityQueue<TrackedObjectsEvent> eventQueue;
+    private PriorityQueue<TrackedObjectsEvent> TOeventQueue;
 
     public LiDarService(String name, LiDarWorkerTracker lidarWorkerTracker) {
         super(name);
         this.lidarWorkerTracker = lidarWorkerTracker;
-        this.eventQueue = new PriorityQueue<>(Comparator.comparingInt(event -> event.getTime()));
+        this.TOeventQueue = new PriorityQueue<>(Comparator.comparingInt(event -> event.getTime()));
 
     }
 
     @Override
     protected void initialize() {
         subscribeBroadcast(TickBroadcast.class, tick -> {
+            System.out.println(getName() + ": recived tickBrodcast, tick: " + tick.getTime());
             int currentTime = tick.getTime();
+            if (lidarWorkerTracker.getStatus() != STATUS.UP) {
+                return;
+            }
             lidarWorkerTracker.updateTick(currentTime);
-            while (!eventQueue.isEmpty()) {
-                TrackedObjectsEvent event = eventQueue.peek();
+            while (!TOeventQueue.isEmpty()) {
+                TrackedObjectsEvent event = TOeventQueue.peek();
                 if (event.getdesignatedTime() > currentTime) {
                     break;
                 }
-                TrackedObjectsEvent readyEvent = eventQueue.poll();
+                TrackedObjectsEvent readyEvent = TOeventQueue.poll();
                 complete(readyEvent.getHandeledEvent(), true);
+                lidarWorkerTracker.setLastTrackedObjects(readyEvent.getTrackedObjects());// update the last tracked
+                                                                                         // objects
+                System.out.println(getName() + ": sent TrackedObjectsEvent at time" + currentTime
+                        + "for object from time" + event.getTime());
                 System.out.println(getName() + ": sent an event");
-
                 sendEvent(readyEvent);
-                StatisticalFolder.getInstance().updateNumDetectedObjects(
-                        readyEvent.getTrackedObjects().size());
+                StatisticalFolder.getInstance().updateNumDetectedObjects(readyEvent.getTrackedObjects().size());
+                if (TOeventQueue.isEmpty() && (lidarWorkerTracker.getStatus() == STATUS.DOWN)) {
+                    System.out.println(getName() + ": is down, finished and terminated");
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName()));
+                }
             }
         });
 
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
                 lidarWorkerTracker.setStatus(STATUS.DOWN);
-                System.out.println(getName() + ": is terminated");
+                System.out.println(getName() + "recived TerminatedBroadcast from TimeService");
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));
             }
         });
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             lidarWorkerTracker.setStatus(STATUS.DOWN);
+            System.out.println(getName() + "recived CrashedBroadcast from" + broadcast.getSenderId());
             terminate();
-            sendBroadcast(new TerminatedBroadcast(getName()));
-            // should we do more?
         });
 
         // --------------------לוודא את עניין הזמנים שוב
@@ -80,9 +87,9 @@ public class LiDarService extends MicroService {
                 List<TrackedObject> TrackedObjects = lidarWorkerTracker
                         .prosseingEvent(event.getStampedDetectedObjects());
                 if (lidarWorkerTracker.getStatus() == STATUS.ERROR) {
-                    System.out.println(getName() + ": has an eror");
+                    System.out.println(getName() + "eror");
                     terminate();
-                    sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected",
+                    sendBroadcast(new CrashedBroadcast("LidarWorker" + lidarWorkerTracker.getId() + "disconnected ",
                             this.getName()));
                 } else {
                     int designatedTime = event.getStampedDetectedObjects().getTime()
@@ -92,40 +99,26 @@ public class LiDarService extends MicroService {
                             event.getStampedDetectedObjects().getTime(), TrackedObjects, getName(), designatedTime));
                     if (designatedTime <= currTime) { ///// ----------לבדוק תנאי ראשון
                         complete(event, true);
-                        System.out.println(getName() + ": sent trackedobject event");
+                        System.out.println(getName() + ": sent trackedobject event, time: " + currTime);
                         sendEvent(toSendEvent);
+                        lidarWorkerTracker.setLastTrackedObjects(TrackedObjects);// update the last tracked objects
                         StatisticalFolder.getInstance().updateNumTrackedObjects(TrackedObjects.size());
                     } else {
-                        eventQueue.add(toSendEvent);
+                        TOeventQueue.add(toSendEvent);
                     }
                 }
                 if (lidarWorkerTracker.getStatus() == STATUS.DOWN) {
                     System.out.println(getName() + ": is terminated");
                     terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));
+                } else if (TOeventQueue.isEmpty()) {
+                    System.out.println(getName() + ": finished and terminated");
+                    terminate();
+                    sendBroadcast(new TerminatedBroadcast(getName()));
                 }
-            } else {// down
-                System.out.println(getName() + ": is terminated");
-                terminate();
-                sendBroadcast(new TerminatedBroadcast(getName()));
             }
         });
 
-    }
-
-    public void testTerminate() {// added this for the test
-        terminate();
-    }
-
-    public boolean isTerminatedForTest() {// added this for the test
-        try {
-            java.lang.reflect.Field field = MicroService.class.getDeclaredField("terminated");
-            field.setAccessible(true); // Make the field accessible
-            return field.getBoolean(this);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 
 }

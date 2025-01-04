@@ -1,10 +1,7 @@
 package bgu.spl.mics.application.services;
 
 import java.util.ArrayDeque;
-//import java.util.List;
 import java.util.Queue;
-
-//import bgu.spl.mics.Broadcast;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.DetectObjectsEvent;
@@ -22,6 +19,7 @@ import bgu.spl.mics.application.objects.StatisticalFolder;
  * This service interacts with the Camera object to detect objects and updates
  * the system's StatisticalFolder upon sending its observations.
  */
+//
 public class CameraService extends MicroService {
     private final Camera camera;
     private Queue<DetectObjectsEvent> eventQueue;
@@ -57,8 +55,8 @@ public class CameraService extends MicroService {
                 StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime);
                 if (camera.getStatus() == STATUS.ERROR) {
                     System.out.println(getName() + ": got an error");
-                    terminate();
                     sendBroadcast(new CrashedBroadcast(camera.getErrMString(), this.getName()));
+                    terminate();
                 } else {
                     if (detectedObject != null) {
                         int sendTime = currentTime + camera.getFrequency();
@@ -80,31 +78,33 @@ public class CameraService extends MicroService {
                 }
                 if (camera.getStatus() == STATUS.DOWN) {
                     System.out.println(getName() + ": is down so terminating");
-                    terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));
+                    terminate();
                 }
             } else {// camers is down
-                terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));
+                terminate();
             }
         });
-        // --------------------------------------זה לא נכון צריך לתקן ולהבין מה לעשות עם
-        // ההרשמות האלו ------------------------------------------------------------
         // Subscribe to TerminatedBroadcast
-        subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
-            if ("TimeService".equals(broadcast.getSenderName())) {
-                camera.setStatus(STATUS.DOWN);
-                terminate();
-                sendBroadcast(new TerminatedBroadcast(getName()));
-            }
-        });
-        // if its from the other services we think do nothing
+        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
+            System.out.println(getName() + " received TerminatedBroadcast from " + broadcast.getSenderName());
 
-        // Subscribe to TerminatedBroadcast
+            // Conditional termination: Only terminate if the sender is "TimeService"
+            if ("TimeService".equals(broadcast.getSenderName())) {
+                System.out.println(getName() + " terminated because TimeService has ended");
+                camera.setStatus(STATUS.DOWN); // Update camera status to DOWN
+                sendBroadcast(new TerminatedBroadcast(getName()));
+                terminate();
+            }
+        });
+
+        // Subscribe to CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
+            System.out
+                    .println(getName() + " received CrashedBroadcast from " + broadcast.getSenderId() + " Terminating");
             camera.setStatus(STATUS.DOWN);
             terminate();
-            sendBroadcast(new TerminatedBroadcast(getName()));
         });
 
     }

@@ -3,6 +3,8 @@ package bgu.spl.mics.application;
 import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.application.services.*;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
@@ -46,25 +48,24 @@ public class GurionRockRunner {
             System.out.println("Configuration loaded: " + config);
 
             // Parse Cameras
-            JsonObject camerasConfig = config.getAsJsonObject("Cameras");
-            String cameraDataPath = camerasConfig.get("camera_datas_path").getAsString();
-            File cameraDataFile = new File(configDirectory, cameraDataPath); // Resolve relative path
-
-            List<JsonObject> camerasList = gson.fromJson(
-                    camerasConfig.getAsJsonArray("CamerasConfigurations"),
-                    new TypeToken<List<JsonObject>>() {
-                    }.getType());
-
+            JsonArray camerasConfig = config.getAsJsonArray("Cameras");
             List<Thread> cameraThreads = new ArrayList<>();
             Set<Integer> cameraIds = new HashSet<>();
 
-            for (JsonObject camera : camerasList) {
+            for (JsonElement cameraElement : camerasConfig) {
+                if (!cameraElement.isJsonObject()) {
+                    continue; // Skip null or invalid elements
+                }
+
+                JsonObject camera = cameraElement.getAsJsonObject();
                 int id = camera.get("id").getAsInt();
                 if (!cameraIds.add(id)) {
                     throw new IllegalArgumentException("Duplicate camera ID detected: " + id);
                 }
                 int frequency = camera.get("frequency").getAsInt();
                 String key = camera.get("camera_key").getAsString();
+                String cameraDataPath = camera.get("camera_datas_path").getAsString();
+                File cameraDataFile = new File(configDirectory, cameraDataPath); // Resolve relative path
                 if (key == null || key.isEmpty()) {
                     throw new IllegalArgumentException("camera_key is missing or invalid for camera ID: " + id);
                 }
