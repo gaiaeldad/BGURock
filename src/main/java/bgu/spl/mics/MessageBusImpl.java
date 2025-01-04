@@ -162,4 +162,40 @@ public class MessageBusImpl implements MessageBus {
         return microServiceQueues;
     }
 
+    // functions for testing
+
+    // Checks if the given microservice is registered in the MessageBus
+    public boolean isRegistered(MicroService m) {
+        return microServiceQueues.containsKey(m);
+    }
+
+    // Returns the number of currently registered microservices
+    public int getNumberOfRegisters() {
+        return microServiceQueues.size();
+    }
+
+    // Checks if the given microservice is subscribed to a specific Broadcast type
+    public boolean isSubscribedToBroad(Class<? extends Broadcast> type, MicroService m) {
+        List<MicroService> subscribers = broadcastSubscribers.get(type);
+        return subscribers != null && subscribers.contains(m);
+    }
+
+    // Returns the number of subscribers to a specific Broadcast type
+    public int getNumberOfSubscribersToBroad(Class<? extends Broadcast> type) {
+        List<MicroService> subscribers = broadcastSubscribers.get(type);
+        return subscribers == null ? 0 : subscribers.size();
+    }
+
+    // Checks if the given microservice is subscribed to a specific Event type
+    public boolean isSubscribedToEvent(Class<? extends Event<?>> type, MicroService m) {
+        Queue<MicroService> subscribers = eventSubscribers.get(type);
+        return subscribers != null && subscribers.contains(m);
+    }
+
+    // Returns the number of subscribers to a specific Event type
+    public int getNumberOfSubscribersToEvent(Class<? extends Event<?>> type) {
+        Queue<MicroService> subscribers = eventSubscribers.get(type);
+        return subscribers == null ? 0 : subscribers.size();
+    }
+
 }

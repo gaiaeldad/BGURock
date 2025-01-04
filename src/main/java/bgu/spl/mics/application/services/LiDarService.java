@@ -121,4 +121,10 @@ public class LiDarService extends MicroService {
 
     }
 
+    // functions for testing
+    // Terminates the service for testing purposes
+    public void testTerminate() {
+        terminate(); // Calls the inherited terminate method to stop the service.
+    }
+
 }
