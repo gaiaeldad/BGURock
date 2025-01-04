@@ -1,10 +1,7 @@
 package bgu.spl.mics.application.services;
 
 import java.util.ArrayDeque;
-//import java.util.List;
 import java.util.Queue;
-
-//import bgu.spl.mics.Broadcast;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.DetectObjectsEvent;
@@ -22,6 +19,7 @@ import bgu.spl.mics.application.objects.StatisticalFolder;
  * This service interacts with the Camera object to detect objects and updates
  * the system's StatisticalFolder upon sending its observations.
  */
+//
 public class CameraService extends MicroService {
     private final Camera camera;
     private Queue<DetectObjectsEvent> eventQueue;
@@ -106,7 +104,6 @@ public class CameraService extends MicroService {
             System.out
                     .println(getName() + " received CrashedBroadcast from " + broadcast.getSenderId() + " Terminating");
             camera.setStatus(STATUS.DOWN);
-            sendBroadcast(new TerminatedBroadcast(getName()));
             terminate();
         });
 
