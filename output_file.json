@@ -3,7 +3,7 @@
   "statistics": {
     "numTrackedObjects": 0,
     "numLandmarks": 0,
-    "systemRuntime": 30,
+    "systemRuntime": 0,
     "numDetectedObjects": 0
   }
 }

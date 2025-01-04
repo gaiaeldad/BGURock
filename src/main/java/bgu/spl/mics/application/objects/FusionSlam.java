@@ -3,6 +3,7 @@ package bgu.spl.mics.application.objects;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -28,6 +29,29 @@ public class FusionSlam {
     private Map<Integer, Pose> posesByTime = new TreeMap<>(); // Map to hold poses by time
     private int serviceCounter = 0;
     private int currentTick = 0;
+    // i added for main-------------
+    private final AtomicInteger activeCameras = new AtomicInteger(0);
+    private int activeSensors = 0;
+
+    // Setter for active cameras
+    public void setActiveCameras(int activeCameras) {
+        this.activeCameras.set(activeCameras);
+    }
+
+    // Setter for total active sensors
+    public void setActiveSensors(int activeSensors) {
+        this.activeSensors = activeSensors;
+    }
+
+    // Getter for active cameras
+    public int getActiveCameras() {
+        return activeCameras.get();
+    }
+
+    // Getter for total active sensors
+    public int getActiveSensors() {
+        return activeSensors;
+    }
 
     /**
      * Updates the current pose of the robot.

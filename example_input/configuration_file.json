@@ -1,13 +1,15 @@
 {
-  "Cameras": [
-    {
-      "id": 1,
-      "frequency": 0,
-      "camera_datas_path": "./camera_data.json",
-      "camera_key": "camera1"
-    },
-  ],
-  "Lidars": {
+  "Cameras": {
+    "CamerasConfigurations": [
+      {
+        "id": 1,
+        "frequency": 0,
+        "camera_key": "camera1"
+      }
+    ],
+    "camera_datas_path": "./camera_data.json"
+  },
+  "LiDarWorkers": {
     "LidarConfigurations": [
       {
         "id": 1,
@@ -20,3 +22,4 @@
   "TickTime": 1,
   "Duration": 30
 }
+

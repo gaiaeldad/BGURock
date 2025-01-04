@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +31,18 @@ public class Camera {
         maxTime = 0;
         errMString = null;
         loadDetectedObjectsFromFile(filePath, cameraKey);
+    }
+
+    // Constructor for main ----------------
+    public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList) {
+        this.id = id;
+        this.frequency = frequency;
+        this.status = STATUS.UP; // Default status is UP
+        this.detectedObjectsList = detectedObjectsList != null
+                ? Collections.unmodifiableList(detectedObjectsList)
+                : Collections.emptyList(); // Ensure immutability of preloaded data
+        this.maxTime = 0;
+        this.errMString = null;
     }
 
     public int getId() {

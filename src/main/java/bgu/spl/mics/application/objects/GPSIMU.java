@@ -15,10 +15,17 @@ import com.google.gson.reflect.TypeToken;
 public class GPSIMU {
 
     // Fields
-    private int currentTick; 
-    private STATUS status; 
-    private List<Pose> poseList; 
-    private int maxTime; 
+    private int currentTick;
+    private STATUS status;
+    private List<Pose> poseList;
+    private int maxTime;
+
+    public GPSIMU(List<Pose> poseList) { // Constructor for main---------------
+        currentTick = 0;
+        this.status = STATUS.UP; // Default status
+        this.poseList = poseList;
+        this.maxTime = calculateMaxTime(); // Calculate the maximum time
+    }
 
     public GPSIMU(String filePath) {
         this.currentTick = 0;
@@ -46,21 +53,23 @@ public class GPSIMU {
                 return pose;
             }
         }
-        return null; 
+        return null;
     }
+
     public Pose getPoseAtTime(int time) {
         for (Pose pose : poseList) {
             if (pose.getTime() == time) {
                 return pose;
             }
         }
-        return null; 
+        return null;
     }
 
     public List<Pose> loadPosesFromFile(String filePath) {
         try (FileReader reader = new FileReader(filePath)) {
             Gson gson = new Gson();
-            return gson.fromJson(reader, new TypeToken<List<Pose>>() {}.getType());
+            return gson.fromJson(reader, new TypeToken<List<Pose>>() {
+            }.getType());
         } catch (IOException e) {
             return new ArrayList<>(); // Return an empty list in case of failure
         }
@@ -70,8 +79,8 @@ public class GPSIMU {
         return poseList.stream().mapToInt(Pose::getTime).max().orElse(0);
     }
 
-    
-    //Update the status to DOWN if the current time exceeds or equals the maximum time.
+    // Update the status to DOWN if the current time exceeds or equals the maximum
+    // time.
     public void updateStatusBasedOnTime() {
         if (currentTick >= maxTime) {
             setStatus(STATUS.DOWN);
@@ -91,10 +100,10 @@ public class GPSIMU {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("GPSIMU{currentTick=").append(currentTick)
-          .append(", status=").append(status)
-          .append(", maxTime=").append(maxTime)
-          .append(", poseList=");
-        
+                .append(", status=").append(status)
+                .append(", maxTime=").append(maxTime)
+                .append(", poseList=");
+
         for (Pose pose : poseList) {
             sb.append(pose).append(", ");
         }
