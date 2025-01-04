@@ -182,4 +182,11 @@ public abstract class MicroService implements Runnable {
             messageBus.unregister(this);
         }
     }
+
+    // function for testing
+    // Returns whether the service is terminated
+    public boolean isTerminated() {
+        return terminated;
+    }
+
 }
