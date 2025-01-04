@@ -16,7 +16,6 @@ public class LiDarWorkerTracker {
     private LiDarDataBase liDarDataBase; // Instance of LiDarDataBase
     private int currentTick = 0;
     private int maxTime;
-    
 
     // Constructor to initialize the LiDarWorkerTracker object.
     public LiDarWorkerTracker(int id, int frequency, String lidarDataFilePath) {
@@ -26,7 +25,7 @@ public class LiDarWorkerTracker {
         this.lastTrackedObjects = new ArrayList<>();
         this.liDarDataBase = LiDarDataBase.getInstance(lidarDataFilePath); // Initialize the singleton instance
         this.maxTime = calculateMaxTime(); // Calculate the maximum time from the database
-        
+
     }
 
     public int getId() {
@@ -37,10 +36,14 @@ public class LiDarWorkerTracker {
         return frequency;
     }
 
+    public void setLastTrackedObjects(List<TrackedObject> newlist) {
+        this.lastTrackedObjects = newlist;
+    }
+
     public STATUS getStatus() {
         return status;
     }
-    
+
     public int getCurrentTick() {
         return currentTick;
     }
@@ -82,18 +85,18 @@ public class LiDarWorkerTracker {
         int detectionTime = stampedDetectedObjects.getTime();
         List<DetectedObject> detectedObjects = stampedDetectedObjects.getDetectedObjects();
         checkForErrorInCloudPointsAtTime(detectionTime);
-        if (this.status == STATUS.UP){
-            for (DetectedObject detectedObject : detectedObjects){
+        if (this.status == STATUS.UP) {
+            for (DetectedObject detectedObject : detectedObjects) {
                 TrackedObject trackedObject = new TrackedObject(
-                    detectedObject.getId(),
-                    detectionTime,
-                    detectedObject.getDescription(),
-                    getCoordinates(detectedObject.getId(), detectionTime)//להמיר את הקורדינטות לליסט של קלאוד
-                    );
-                    lastTrackedObjects.add(trackedObject);
+                        detectedObject.getId(),
+                        detectionTime,
+                        detectedObject.getDescription(),
+                        getCoordinates(detectedObject.getId(), detectionTime)// להמיר את הקורדינטות לליסט של קלאוד
+                );
+                lastTrackedObjects.add(trackedObject);
             }
         }
-        
+
         return lastTrackedObjects;
     }
 
@@ -105,6 +108,9 @@ public class LiDarWorkerTracker {
     }
 
     private int calculateMaxTime() {
-        return liDarDataBase.getCloudPoints().stream().mapToInt(StampedCloudPoints::getTime).max().orElse(0); // Default to 0 if no data exists
+        return liDarDataBase.getCloudPoints().stream().mapToInt(StampedCloudPoints::getTime).max().orElse(0); // Default
+                                                                                                              // to 0 if
+                                                                                                              // no data
+                                                                                                              // exists
     }
 }

@@ -11,6 +11,7 @@ import bgu.spl.mics.application.objects.StatisticalFolder;
  * TickBroadcast messages
  * at regular intervals and controlling the simulation's duration.
  */
+
 public class TimeService extends MicroService {
 
     private final int tickTime; // Duration of each tick in milliseconds
@@ -35,7 +36,6 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
-        System.out.println("TimeService initialized.");
         try {
             for (int currentTick = 1; currentTick <= duration
                     && !FusionSlam.getInstance().isTerminated(); currentTick++) {
@@ -48,13 +48,13 @@ public class TimeService extends MicroService {
                 Thread.sleep(tickTime * 1000L);
             }
 
-        } catch (InterruptedException e) {
-            System.out.println("TimeService interrupted");
-            Thread.currentThread().interrupt(); // Restore interrupt status
-        } finally {
             // After all ticks are complete, broadcast TerminatedBroadcast
             sendBroadcast(new TerminatedBroadcast(getName()));
             System.out.println("TimeService broadcasted TerminatedBroadcast.");
+        } catch (InterruptedException e) {
+            System.out.println("TimeService interrupted. Terminating...");
+            Thread.currentThread().interrupt(); // Restore interrupt status
+        } finally {
             terminate(); // Signal the service to terminate
         }
     }

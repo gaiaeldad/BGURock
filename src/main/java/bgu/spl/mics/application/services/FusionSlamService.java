@@ -14,6 +14,7 @@ import bgu.spl.mics.application.messages.*;
  * FusionSlamService integrates data from multiple sensors to build and update
  * the robot's global map.
  */
+
 public class FusionSlamService extends MicroService {
     private final FusionSlam fusionSlam;
     private PriorityQueue<TrackedObjectsEvent> TrackedObjectsQueue = new PriorityQueue<>(
@@ -38,6 +39,7 @@ public class FusionSlamService extends MicroService {
     protected void initialize() {
         // Register for TrackedObjectsEvent
         subscribeEvent(TrackedObjectsEvent.class, event -> {
+            System.out.println(getName() + ": recived TrackedObjectsEvent");
             if (fusionSlam.getPoseAtTime(event.getTrackedObjects().get(0).getTime()) == null) {
                 System.out.println("this event had no pose");
                 TrackedObjectsQueue.add(event);
@@ -51,6 +53,7 @@ public class FusionSlamService extends MicroService {
 
         // Register for PoseEvent
         subscribeEvent(PoseEvent.class, event -> {
+            System.out.println(getName() + ": recived PoseEvent");
             fusionSlam.addPose(event.getPose());
             complete(event, true);
             // Process all TrackedObjectsEvents in the queue that have a corresponding Pose
@@ -72,6 +75,7 @@ public class FusionSlamService extends MicroService {
 
         // Register for TickBroadcast
         subscribeBroadcast(TickBroadcast.class, broadcast -> {
+            System.out.println(getName() + ": recived a tickBrodcast, tick: " + broadcast.getTime());
             int currentTick = broadcast.getTime();
             fusionSlam.setCurrentTick(currentTick);
 
