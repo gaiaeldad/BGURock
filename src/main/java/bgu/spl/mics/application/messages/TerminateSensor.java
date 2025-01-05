@@ -1,15 +1,12 @@
+
 package bgu.spl.mics.application.messages;
 
 import bgu.spl.mics.Broadcast;
 
-/**
- * A broadcast that represents the termination of the program.
- */
-// TerminatedBroadcast class
-public class TerminatedBroadcast implements Broadcast {
+public class TerminateSensor implements Broadcast {
     private String senderName;
 
-    public TerminatedBroadcast(String senderName) {
+    public TerminateSensor(String senderName) {
         this.senderName = senderName;
     }
 

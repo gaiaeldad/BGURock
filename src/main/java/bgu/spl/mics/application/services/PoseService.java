@@ -14,6 +14,7 @@ import bgu.spl.mics.application.objects.STATUS;
  * and orientation)
  * and broadcasting PoseEvents at every tick.
  */
+// p
 public class PoseService extends MicroService {
 
     private final GPSIMU gpsimu;
@@ -44,11 +45,11 @@ public class PoseService extends MicroService {
                 Pose currentPose = gpsimu.getPoseAtTime();
                 if (currentPose != null) {
                     // Broadcast PoseEvent
-                    sendEvent(new PoseEvent(currentPose, getName()));
                     System.out.println(getName() + ": sent a pose event, time: " + tick.getTime());
+                    sendEvent(new PoseEvent(currentPose, getName()));
                 }
                 if (gpsimu.getStatus() == STATUS.DOWN) {
-                    System.out.println(getName() + ": is terminated");
+                    System.out.println(getName() + ": is terminated because GPSIMU is down");
                     terminate();
                     sendBroadcast(new TerminatedBroadcast(getName()));
                 }
@@ -61,7 +62,6 @@ public class PoseService extends MicroService {
 
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast broadcast) -> {
             if ("TimeService".equals(broadcast.getSenderName())) {
-                gpsimu.setStatus(STATUS.DOWN);
                 System.out.println(getName() + ": recived TerminatedBroadcast from TimeService");
                 terminate();
                 sendBroadcast(new TerminatedBroadcast(getName()));
@@ -70,8 +70,7 @@ public class PoseService extends MicroService {
 
         // Subscribe to CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
-            gpsimu.setStatus(STATUS.DOWN);
-            System.out.println(getName() + ": recived CrashedBroadcast from " + broadcast.getSenderId());
+            System.out.println(getName() + ": recived CrashedBroadcast from " + broadcast.getSenderName());
             terminate();
         });
     }

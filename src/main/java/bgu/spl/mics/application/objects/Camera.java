@@ -24,41 +24,34 @@ public class Camera {
     private int maxTime;
     private String errMString;
 
-    public Camera(int id, int frequency, String filePath, String cameraKey) {
-        this.id = id;
-        this.frequency = frequency;
-        this.status = STATUS.UP;
-        this.maxTime = 0;
-        errMString = null;
-        loadDetectedObjectsFromFile(filePath, cameraKey);
-    }
+    // Constructor to initialize the Camera object.
 
-    // Constructor for main ----------------
     public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList, int maxTime) {
         this.id = id;
         this.frequency = frequency;
-        this.status = STATUS.UP; // Default status is UP
+        this.status = STATUS.UP;
         this.detectedObjectsList = detectedObjectsList != null
                 ? Collections.unmodifiableList(detectedObjectsList)
-                : Collections.emptyList(); // Ensure immutability of preloaded data
+                : Collections.emptyList();
         this.maxTime = maxTime;
         this.errMString = null;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public int getFrequency() {
-        return frequency;
-    }
-
-    public STATUS getStatus() {
-        return status;
-    }
-
-    public String getErrMString() {
-        return errMString;
+    public Camera(int id, int frequency, String filePath, String cameraKey) {
+        this.id = id;
+        this.frequency = frequency;
+        this.status = STATUS.UP;
+        this.errMString = null;
+        this.detectedObjectsList = new ArrayList<>();
+        loadDetectedObjectsFromFile(filePath, cameraKey);
+        if (!detectedObjectsList.isEmpty()) {
+            this.maxTime = detectedObjectsList.stream()
+                    .mapToInt(StampedDetectedObject::getTime)
+                    .max()
+                    .orElse(0);
+        } else {
+            this.maxTime = 0;
+        }
     }
 
     public List<StampedDetectedObject> getDetectedObjectsList() {
@@ -116,5 +109,21 @@ public class Camera {
 
     public void setStatus(STATUS status) {
         this.status = status;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getFrequency() {
+        return frequency;
+    }
+
+    public STATUS getStatus() {
+        return status;
+    }
+
+    public String getErrMString() {
+        return errMString;
     }
 }

@@ -1,24 +1,23 @@
 package bgu.spl.mics.application.services;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-
 import bgu.spl.mics.*;
+import java.util.PriorityQueue;
+import java.nio.file.Paths;
+import java.util.Comparator;
 import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.application.messages.*;
 
 /**
- * FusionSlamService integrates data from multiple sensors to build and update
- * the robot's global map.
+ * FusionSlamService is a MicroService that processes TrackedObjectsEvents and
+ * PoseEvents to update the global map in the FusionSLAM object.
  */
+// FusionSlamService class
 
 public class FusionSlamService extends MicroService {
     private final FusionSlam fusionSlam;
     private PriorityQueue<TrackedObjectsEvent> TrackedObjectsQueue = new PriorityQueue<>(
             Comparator.comparingInt(e -> e.getTrackedObjects().get(0).getTime()));
+    private String outputFilePath;
 
     /**
      * Constructor for FusionSlamService.
@@ -26,9 +25,10 @@ public class FusionSlamService extends MicroService {
      * @param fusionSlam The FusionSLAM object responsible for managing the global
      *                   map.
      */
-    public FusionSlamService(FusionSlam fusionSlam) {
+    public FusionSlamService(FusionSlam fusionSlam, String configDirectory) {
         super("FusionSlamService");
         this.fusionSlam = FusionSlam.getInstance();
+        this.outputFilePath = Paths.get(configDirectory, "output_file.json").toString();
     }
 
     /**
@@ -45,7 +45,7 @@ public class FusionSlamService extends MicroService {
                 TrackedObjectsQueue.add(event);
             } else {
                 fusionSlam.processTrackedObjects(event.getTrackedObjects());
-                System.out.println("the  tracked object event has been processed in: " + getName());
+                System.out.println(getName() + "processed TrackedObjectsEvent from time" + event.getTime());
                 complete(event, true);
             }
 
@@ -55,6 +55,7 @@ public class FusionSlamService extends MicroService {
         subscribeEvent(PoseEvent.class, event -> {
             System.out.println(getName() + ": recived PoseEvent");
             fusionSlam.addPose(event.getPose());
+            System.out.println("PoseEvent from " + event.getPose().getTime() + " has been processed in: " + getName());
             complete(event, true);
             // Process all TrackedObjectsEvents in the queue that have a corresponding Pose
             while (!TrackedObjectsQueue.isEmpty()) {
@@ -63,7 +64,8 @@ public class FusionSlamService extends MicroService {
                 if (fusionSlam.getPoseAtTime(trackedObjectsTime) != null) {
                     TrackedObjectsEvent e = TrackedObjectsQueue.poll();
                     fusionSlam.processTrackedObjects(e.getTrackedObjects());
-                    System.out.println("the poseevent has been processed in: " + getName());
+                    System.out
+                            .println("the poseevent has been processed in: " + getName() + " at time: " + e.getTime());
                     complete(e, true);
                 } else {
                     // Stop processing if the required Pose is not available
@@ -77,41 +79,34 @@ public class FusionSlamService extends MicroService {
         subscribeBroadcast(TickBroadcast.class, broadcast -> {
             System.out.println(getName() + ": recived a tickBrodcast, tick: " + broadcast.getTime());
             int currentTick = broadcast.getTime();
-            fusionSlam.setCurrentTick(currentTick);
+            fusionSlam.setTick(currentTick);
 
         });
 
         // Register for TerminatedBroadcast
-        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {//// לעדכן שלא הגיע מטיים
-            if (broadcast.getSenderName() != "TimeService") {
+        subscribeBroadcast(TerminatedBroadcast.class, broadcast -> {
+            if (broadcast.getSenderName() != "TimeService ") {
                 fusionSlam.decreaseServiceCounter();
+                System.out.println(getName() + ": service counter is " + fusionSlam.getserviceCounter()
+                        + "termineted sensor: " + broadcast.getSenderName());
+                if (fusionSlam.getserviceCounter() == 0) {
+                    System.out.println(getName() + ": terminate program, service counter is 0");
+                    terminate();
+                    System.out.println(getName() + ": has terminated");
+                    System.out.println(getName() + ": is printing an output file");
+                    fusionSlam.generateOutputFileWithoutError(outputFilePath);
+                }
             }
-            if (fusionSlam.getserviceCounter() == 0) {
-                // Generate output file
-                terminate();
-                System.out.println(getName() + ": is terminated");
-                Map<String, Object> lastFrames = new HashMap<>(); // Populate if isError = true
-                int currentTick = fusionSlam.getCurrentTick();
-                List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick);
-                fusionSlam.generateOutputFile("output_file.json", false, null, null, lastFrames, poses);// איפה הקובץ?
-            }
-
         });
-        // ----------------לתקן last franme רשימה ריקה ---------------------
 
         // Register for CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, broadcast -> {
+            System.out.println(getName() + ": recived CrashedBroadcast from " + broadcast.getSenderName());
             terminate();
-            // cheak this
-            boolean isError = true; // Set to true if an error occurred
             String errorDescription = broadcast.getErrorMessage(); // Populate if isError = true
-            String faultySensor = broadcast.getSenderId(); // Populate if isError = true
-            Map<String, Object> lastFrames = new HashMap<>(); // Populate if isError = true
-            int currentTick = fusionSlam.getCurrentTick();
-            List<Pose> poses = fusionSlam.getPosesUpToTick(currentTick); // קבלת כל ה-Pose עד לנקודת השגיאה
-            fusionSlam.generateOutputFile("output_file.json", isError, errorDescription, faultySensor, lastFrames,
-                    poses);// איפה הקובץ?
-
+            String faultySensor = broadcast.getSenderName(); // Populate if isError = true
+            System.out.println(getName() + ": is printing an error output file");
+            fusionSlam.generateOutputFileWithError(outputFilePath, errorDescription, faultySensor);
         });
     }
 }

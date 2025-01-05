@@ -7,6 +7,7 @@ package bgu.spl.mics.application.objects;
  * - DOWN: The component is non-operational.
  * - ERROR: The component has encountered an error.
  */
+// enum class stsatus
 public enum STATUS {
     UP, DOWN, ERROR;
 
@@ -16,6 +17,7 @@ public enum STATUS {
      * @param statusString The status as a string (e.g., "UP", "DOWN", "ERROR").
      * @return The corresponding STATUS enum value, or ERROR if invalid.
      */
+    // convert string to status
     public static STATUS fromString(String statusString) {
         switch (statusString.toUpperCase()) {
             case "UP":
@@ -25,13 +27,12 @@ public enum STATUS {
             case "ERROR":
                 return ERROR;
             default:
-            //לא בטוח שצריך
                 System.out.println("Invalid status string: " + statusString);
-                return ERROR;  // Default to ERROR if invalid
+                return ERROR; // Default to ERROR if invalid
         }
     }
 
     public static String toString(STATUS status) {
-        return status.name();  // Returns the name of the enum (e.g., "UP")
+        return status.name(); // Returns the name of the enum value
     }
 }

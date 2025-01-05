@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  */
 public abstract class MicroService implements Runnable {
-
     private boolean terminated = false;
     private final String name;
     private final MessageBus messageBus = MessageBusImpl.getInstance();
@@ -86,8 +85,8 @@ public abstract class MicroService implements Runnable {
      *                 queue.
      */
     protected final <B extends Broadcast> void subscribeBroadcast(Class<B> type, Callback<B> callback) {
-        messageBus.subscribeBroadcast(type, this);
         callbacks.put(type, callback);
+        messageBus.subscribeBroadcast(type, this);
     }
 
     /**
@@ -162,24 +161,27 @@ public abstract class MicroService implements Runnable {
      * otherwise you will end up in an infinite loop.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public final void run() {
-        messageBus.register(this); // Register this microservice with the message bus
-        initialize(); // Perform initialization such as subscriptions
-        try {
-            while (!terminated) {
-                // Wait for and retrieve the next message. This is a blocking call that may
-                Message message = messageBus.awaitMessage(this);
-                @SuppressWarnings("unchecked")
-                Callback<Message> callback = (Callback<Message>) callbacks.get(message.getClass());
-                if (callback != null) {
-                    callback.call(message); // Execute the callback
-                }
+        messageBus.register(this);
+        initialize();
+        while (!terminated) {
+            try {
+                Message message = messageBus.awaitMessage(this);// Wait for a message
+                Callback<Message> callback = (Callback<Message>) callbacks.get(message.getClass());// Find and execute
+                                                                                                   // the appropriate
+                                                                                                   // callback
+                callback.call(message);
+            } catch (InterruptedException e) {
+                terminate();
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            // Ensure the microservice is unregistered.
-            messageBus.unregister(this);
         }
+        System.out.println(getName() + " finished run");
+        messageBus.unregister(this);
+
+    }
+
+    public boolean isterminated() {
+        return terminated;
     }
 }

@@ -30,9 +30,10 @@ public class GurionRockRunner {
      * @param args Command-line arguments. The first argument is expected to be the
      *             path to the configuration file.
      */
+    // main method
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Error: Configuration file path is required as the first argument.");
+            System.err.println("Error: Configuration file path is required as first argument.");
             return;
         }
 
@@ -42,11 +43,11 @@ public class GurionRockRunner {
         String configDirectory = configFile.getParent(); // Extract the directory containing the config file
 
         try (FileReader reader = new FileReader(configPath)) {
-            // Parse the configuration file into a JsonObject
+            // Parse the configurationfile into a JsonObject
             Gson gson = new Gson();
             JsonObject config = gson.fromJson(reader, JsonObject.class);
 
-            // Initialize Cameras
+            // Initialize the Cameras
             List<CameraService> cameraServices = new ArrayList<>();
             JsonObject camerasConfig = config.getAsJsonObject("Cameras");
 
@@ -68,8 +69,6 @@ public class GurionRockRunner {
                     int id = cameraJson.get("id").getAsInt();
                     int frequency = cameraJson.get("frequency").getAsInt();
                     String cameraKey = cameraJson.get("camera_key").getAsString();
-                    int duration = config.get("Duration").getAsInt();
-
                     // Retrieve stamped detected objects for this camera
                     JsonArray stampedObjectsJson = cameraData.getAsJsonArray(cameraKey);
                     List<StampedDetectedObject> detectedObjectsList = new ArrayList<>();
@@ -88,9 +87,19 @@ public class GurionRockRunner {
                         }
                         detectedObjectsList.add(new StampedDetectedObject(time, detectedObjects));
                     }
+                    // Compute maxTime as the maximum time in the detectedObjectsList
+                    int maxTime = detectedObjectsList.stream().mapToInt(StampedDetectedObject::getTime).max().orElse(0); // Default
+                                                                                                                         // to
+                                                                                                                         // 0
+                                                                                                                         // if
+                                                                                                                         // the
+                                                                                                                         // list
+                                                                                                                         // is
+                                                                                                                         // empty
 
+                    // Create Camera object with the computed maxTime
                     // Create Camera object and corresponding CameraService
-                    Camera camera = new Camera(id, frequency, detectedObjectsList, duration);
+                    Camera camera = new Camera(id, frequency, detectedObjectsList, maxTime);
                     cameraServices.add(new CameraService(camera));
                 }
             }
@@ -130,16 +139,18 @@ public class GurionRockRunner {
                 java.lang.reflect.Type poseListType = new com.google.gson.reflect.TypeToken<List<Pose>>() {
                 }.getType();
                 List<Pose> poseList = gson.fromJson(poseReader, poseListType);
-                int duration = config.get("Duration").getAsInt();
+                // Compute maxTime as the maximum time in the poseList
+                int maxTime = poseList.stream().mapToInt(Pose::getTime).max().orElse(0); // Default to 0 if the list is
+                                                                                         // empty
 
                 // Create GPSIMU and initialize PoseService
-                GPSIMU gpsimu = new GPSIMU(poseList, duration);
+                GPSIMU gpsimu = new GPSIMU(poseList, maxTime);
                 poseService = new PoseService(gpsimu);
             }
 
             // Initialize FusionSlamService
             FusionSlam fusionSlam = FusionSlam.getInstance();
-            FusionSlamService fusionSlamService = new FusionSlamService(fusionSlam);
+            FusionSlamService fusionSlamService = new FusionSlamService(fusionSlam, configDirectory);
 
             // Count active cameras and sensors
             int numActiveCameras = cameraServices.size();
@@ -148,7 +159,7 @@ public class GurionRockRunner {
 
             // Update FusionSlam with active sensors and cameras
             fusionSlam.setActiveCameras(numActiveCameras);
-            fusionSlam.setActiveSensors(numActiveSensors);
+            fusionSlam.setActiveSensors(numActiveSensors + 1);
 
             // Print debug information
             System.out.println("Active Cameras: " + numActiveCameras);

@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.objects;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,33 +14,44 @@ import com.google.gson.reflect.TypeToken;
  * Provides information about the robot's position and movement.
  */
 public class GPSIMU {
+    // GPSIMU class
 
-    // Fields
-    private int currentTick;
+    private int currTick;
     private STATUS status;
     private List<Pose> poseList;
     private int maxTime;
 
-    public GPSIMU(List<Pose> poseList, int maxTime) { // Constructor for main---------------
-        currentTick = 0;
+    public GPSIMU(List<Pose> poseList, int maxTime) { // Constructor for main class
+        this.currTick = 0;
         this.status = STATUS.UP; // Default status
         this.poseList = poseList;
         this.maxTime = maxTime; // Calculate the maximum time
     }
+    // -------------chack if okay to delete this constructor----------------
+    // public GPSIMU(String filePath) {
+    // this.currTick = 0;
+    // this.status = STATUS.UP;
+    // this.poseList = loadPosesFromFile(filePath); // Load poses directly into the
+    // list
+    // this.maxTime = calculateMaxTime(); // after this time the status needs to be
+    // DOWN
+    // }
 
-    public GPSIMU(String filePath) {
-        this.currentTick = 0;
-        this.status = STATUS.UP;
-        this.poseList = loadPosesFromFile(filePath); // Load poses directly into the list
-        this.maxTime = calculateMaxTime(); // after this time the status needs to be DOWN
-    }
-
-    public int getCurrentTick() {
-        return currentTick;
+    public void setStatus(STATUS status) {
+        this.status = status;
     }
 
     public STATUS getStatus() {
         return status;
+    }
+
+    public void SetTick(int time) {
+        currTick = time;
+
+    }
+
+    public int getCurrentTick() {
+        return currTick;
     }
 
     public List<Pose> getPoseList() {
@@ -49,7 +61,7 @@ public class GPSIMU {
     public Pose getPoseAtTime() {
         updateStatusBasedOnTime();
         for (Pose pose : poseList) {
-            if (pose.getTime() == this.currentTick) {
+            if (pose.getTime() == this.currTick) {
                 return pose;
             }
         }
@@ -67,39 +79,35 @@ public class GPSIMU {
 
     public List<Pose> loadPosesFromFile(String filePath) {
         try (FileReader reader = new FileReader(filePath)) {
+            System.out.println("pose attempting to read file: " + new File(filePath).getAbsolutePath());
             Gson gson = new Gson();
-            return gson.fromJson(reader, new TypeToken<List<Pose>>() {
+            List<Pose> data = gson.fromJson(reader, new TypeToken<List<Pose>>() {
             }.getType());
+            System.out.println("pose loaded " + data.size() + " detected objects.");
+            return data;
         } catch (IOException e) {
             return new ArrayList<>(); // Return an empty list in case of failure
         }
     }
+    //// -----------------chack if okay to delete this method----------------
 
-    private int calculateMaxTime() {
-        return poseList.stream().mapToInt(Pose::getTime).max().orElse(0);
-    }
+    // private int calculateMaxTime() {
+    // return poseList.stream().mapToInt(Pose::getTime).max().orElse(0);
+    // }
 
     // Update the status to DOWN if the current time exceeds or equals the maximum
     // time.
     public void updateStatusBasedOnTime() {
-        if (currentTick >= maxTime) {
+        if (currTick >= maxTime) {
+            System.out.println("pose down because time is: " + getCurrentTick());
             setStatus(STATUS.DOWN);
         }
-    }
-
-    public void setStatus(STATUS status) {
-        this.status = status;
-    }
-
-    public void SetTick(int time) {
-        currentTick = time;
-        updateStatusBasedOnTime();
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("GPSIMU{currentTick=").append(currentTick)
+        sb.append("GPSIMU{currentTick=").append(currTick)
                 .append(", status=").append(status)
                 .append(", maxTime=").append(maxTime)
                 .append(", poseList=");

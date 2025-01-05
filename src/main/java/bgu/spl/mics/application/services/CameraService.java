@@ -20,15 +20,11 @@ import bgu.spl.mics.application.objects.StatisticalFolder;
  * the system's StatisticalFolder upon sending its observations.
  */
 //
+// camera service class
 public class CameraService extends MicroService {
     private final Camera camera;
     private Queue<DetectObjectsEvent> eventQueue;
 
-    /**
-     * Constructor for CameraService.
-     *
-     * @param camera The Camera object that this service will use to detect objects.
-     */
     public CameraService(Camera camera) {
         super("CameraService" + camera.getId());
         this.camera = camera;
@@ -36,21 +32,13 @@ public class CameraService extends MicroService {
 
     }
 
-    /**
-     * Initializes the CameraService.
-     * Registers the service to handle TickBroadcasts and sets up callbacks for
-     * sending
-     * DetectObjectsEvents.
-     */
     @Override
     protected void initialize() {
         // Subscribe to TickBroadcast
         subscribeBroadcast(TickBroadcast.class, (TickBroadcast broadcast) -> {
             int currentTime = broadcast.getTime();
-            System.out.println(getName() + ": got a tick, " + currentTime + " and status is: " + camera.getStatus());
-
+            System.out.println(getName() + ": got a tick, " + currentTime + ", status is: " + camera.getStatus());
             // Check if the camera is active and it's time to send an event
-
             if (camera.getStatus() == STATUS.UP) {
                 StampedDetectedObject detectedObject = camera.getDetectedObjectsAtTime(currentTime);
                 if (camera.getStatus() == STATUS.ERROR) {
@@ -71,7 +59,8 @@ public class CameraService extends MicroService {
                         }
                         DetectObjectsEvent readyEvent = eventQueue.poll(); // Remove the first event (FIFO)
                         sendEvent(readyEvent);
-                        System.out.println(getName() + ": sent an event");
+                        System.out.println(getName() + ": sent DetectObjectsEvent from time "
+                                + event.getStampedDetectedObjects().getTime());
                         StatisticalFolder.getInstance().updateNumDetectedObjects(
                                 readyEvent.getStampedDetectedObjects().getDetectedObjects().size());
                     }
@@ -93,7 +82,6 @@ public class CameraService extends MicroService {
             // Conditional termination: Only terminate if the sender is "TimeService"
             if ("TimeService".equals(broadcast.getSenderName())) {
                 System.out.println(getName() + " terminated because TimeService has ended");
-                camera.setStatus(STATUS.DOWN); // Update camera status to DOWN
                 sendBroadcast(new TerminatedBroadcast(getName()));
                 terminate();
             }
@@ -102,8 +90,8 @@ public class CameraService extends MicroService {
         // Subscribe to CrashedBroadcast
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast broadcast) -> {
             System.out
-                    .println(getName() + " received CrashedBroadcast from " + broadcast.getSenderId() + " Terminating");
-            camera.setStatus(STATUS.DOWN);
+                    .println(getName() + " received CrashedBroadcast from " + broadcast.getSenderName()
+                            + " Terminating");
             terminate();
         });
 
