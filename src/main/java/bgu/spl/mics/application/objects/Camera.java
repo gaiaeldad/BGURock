@@ -1,8 +1,10 @@
 package bgu.spl.mics.application.objects;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -22,29 +24,34 @@ public class Camera {
     private int maxTime;
     private String errMString;
 
+    // Constructor to initialize the Camera object.
+
+    public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList, int maxTime) {
+        this.id = id;
+        this.frequency = frequency;
+        this.status = STATUS.UP;
+        this.detectedObjectsList = detectedObjectsList != null
+                ? Collections.unmodifiableList(detectedObjectsList)
+                : Collections.emptyList();
+        this.maxTime = maxTime;
+        this.errMString = null;
+    }
+
     public Camera(int id, int frequency, String filePath, String cameraKey) {
         this.id = id;
         this.frequency = frequency;
         this.status = STATUS.UP;
-        maxTime = 0;
-        errMString = null;
+        this.errMString = null;
+        this.detectedObjectsList = new ArrayList<>();
         loadDetectedObjectsFromFile(filePath, cameraKey);
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public int getFrequency() {
-        return frequency;
-    }
-
-    public STATUS getStatus() {
-        return status;
-    }
-
-    public String getErrMString() {
-        return errMString;
+        if (!detectedObjectsList.isEmpty()) {
+            this.maxTime = detectedObjectsList.stream()
+                    .mapToInt(StampedDetectedObject::getTime)
+                    .max()
+                    .orElse(0);
+        } else {
+            this.maxTime = 0;
+        }
     }
 
     public List<StampedDetectedObject> getDetectedObjectsList() {
@@ -68,22 +75,29 @@ public class Camera {
         return null;
     }
 
-    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {// need to fix this
+    public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {
         try (FileReader reader = new FileReader(filePath)) {
+            System.out.println("Camera attempting to read file: " + new File(filePath).getAbsolutePath());
             Gson gson = new Gson();
-            java.lang.reflect.Type type = new TypeToken<Map<String, List<StampedDetectedObject>>>() {
+            java.lang.reflect.Type type = new TypeToken<Map<String, List<List<StampedDetectedObject>>>>() {
             }.getType();
-            Map<String, List<StampedDetectedObject>> cameraData = gson.fromJson(reader, type);
-            List<StampedDetectedObject> cameraObjects = cameraData.get(cameraKey);
-
-            if (cameraObjects != null) {
+            Map<String, List<List<StampedDetectedObject>>> cameraData = gson.fromJson(reader, type);
+            List<List<StampedDetectedObject>> nestedCameraObjects = cameraData.get(cameraKey);
+            if (nestedCameraObjects != null) {
+                List<StampedDetectedObject> cameraObjects = new ArrayList<>();
+                for (List<StampedDetectedObject> list : nestedCameraObjects) {
+                    cameraObjects.addAll(list);
+                }
                 detectedObjectsList = new ArrayList<>(cameraObjects);
-                maxTime = cameraObjects.stream().mapToInt(StampedDetectedObject::getTime).max().orElse(0);
+                maxTime = cameraObjects.stream().mapToInt(StampedDetectedObject::getTime).max().orElse(4);
             } else {
-                detectedObjectsList = new ArrayList<>(); // No data for this camera, initialize empty list
+                detectedObjectsList = new ArrayList<>();
             }
-        } catch (IOException ignored) {
-            detectedObjectsList = new ArrayList<>(); // On error, initialize empty list
+            System.out.println("Camera " + id + " loaded " + detectedObjectsList.size() + " detected objects.");
+        } catch (IOException e) {
+            detectedObjectsList = new ArrayList<>();
+        } catch (Exception e) {
+            detectedObjectsList = new ArrayList<>();
         }
     }
 
@@ -95,5 +109,21 @@ public class Camera {
 
     public void setStatus(STATUS status) {
         this.status = status;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getFrequency() {
+        return frequency;
+    }
+
+    public STATUS getStatus() {
+        return status;
+    }
+
+    public String getErrMString() {
+        return errMString;
     }
 }

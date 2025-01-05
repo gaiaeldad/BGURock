@@ -1,7 +1,7 @@
 package bgu.spl.mics;
 
-import java.util.*;
 import java.util.concurrent.*;
+import java.util.*;
 
 /**
  * The {@link MessageBusImpl class is the implementation of the MessageBus
@@ -9,7 +9,10 @@ import java.util.concurrent.*;
  * Write your implementation here!
  * Only private fields and methods can be added to this class.
  */
+// MessageBusImpl class
+// our implemetion of message bus
 public class MessageBusImpl implements MessageBus {
+    // fileds
     private final Map<Class<? extends Event<?>>, Queue<MicroService>> eventSubscribers = new ConcurrentHashMap<>();
     private final Map<Class<? extends Broadcast>, List<MicroService>> broadcastSubscribers = new ConcurrentHashMap<>();
     private final Map<Event<?>, Future<?>> eventFutures = new ConcurrentHashMap<>();
@@ -24,27 +27,26 @@ public class MessageBusImpl implements MessageBus {
     }
 
     @Override
-    public void register(MicroService m) {
-        microServiceQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
-    }
-
-    @Override
-    public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-        eventSubscribers.putIfAbsent(type, new LinkedList<>());
-        Queue<MicroService> subscribers = eventSubscribers.get(type);
+    public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
+        broadcastSubscribers.putIfAbsent(type, new CopyOnWriteArrayList<>());
+        List<MicroService> subscribers = broadcastSubscribers.get(type);
         synchronized (subscribers) {
             if (!subscribers.contains(m)) { // Ensure the microservice is not registered twice
                 subscribers.add(m);
+                System.out.println(m.getName() + " subscribed to Broadcast: " + type.getSimpleName());
             }
         }
     }
 
     @Override
-    public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-        broadcastSubscribers.putIfAbsent(type, new ArrayList<>());
-        List<MicroService> subscribers = broadcastSubscribers.get(type);
-        if (!subscribers.contains(m)) { // Ensure the microservice is not registered twice
-            subscribers.add(m); // Check synchronization
+    public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
+        eventSubscribers.putIfAbsent(type, new ConcurrentLinkedQueue<>());
+        Queue<MicroService> subscribers = eventSubscribers.get(type);
+        synchronized (subscribers) {
+            if (!subscribers.contains(m)) { // Ensure the microservice is not registered twice
+                subscribers.add(m);
+                System.out.println(m.getName() + " subscribed to event: " + type.getSimpleName());
+            }
         }
     }
 
@@ -66,28 +68,26 @@ public class MessageBusImpl implements MessageBus {
     public void sendBroadcast(Broadcast b) {
         // Retrieve the list of subscribers for this broadcast type
         List<MicroService> subscribers = broadcastSubscribers.get(b.getClass());
-
-        // Check if there are any subscribers
-        if (subscribers != null && !subscribers.isEmpty()) {
-            for (MicroService m : subscribers) {
-                try {
-                    // Retrieve the queue of the microservice
-                    BlockingQueue<Message> queue = microServiceQueues.get(m);
-                    // Check if the queue exists
-                    if (queue == null) {
-                        throw new IllegalStateException("Queue for the MicroService does not exist.");
+        synchronized (subscribers) {
+            // Check if there are any subscribers
+            if (subscribers == null || subscribers.isEmpty()) {
+                System.out.println("No subscribers found for broadcast: " + b.getClass().getSimpleName());
+            } else {
+                for (MicroService m : subscribers) {
+                    // Check if the microservice is registered
+                    if (!microServiceQueues.containsKey(m)) {
+                        System.out.println(
+                                "Error: MicroService " + m.getName() + " is not registered in microServiceQueues.");
                     }
-                    // Add the message to the queue
-                    queue.put(b);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Restore the interrupt status
-                    e.printStackTrace(); // Print the stack trace for debugging
-                } catch (IllegalStateException ex) {
-                    System.err.println("Error: " + ex.getMessage()); // Print the error message
+                    try {
+                        // Add the broadcast to the microservice's queue
+                        microServiceQueues.get(m).put(b);
+                    } catch (InterruptedException e) {
+                        // Handle InterruptedException
+                        Thread.currentThread().interrupt();
+                    }
                 }
             }
-        } else {
-            System.out.println("No subscribers found for the broadcast: " + b.getClass().getName());
         }
     }
 
@@ -101,14 +101,14 @@ public class MessageBusImpl implements MessageBus {
         // Check if there are subscribers for this event type
         Queue<MicroService> subscribers = eventSubscribers.get(e.getClass());
         if (subscribers == null || subscribers.isEmpty()) { // If there are no subscribers
-            return null; // Return null instead of trying to access a null subscriber
+            return null;
         }
 
         MicroService selectedService;
         synchronized (subscribers) {
             // Select a microservice to send the event to (here we chose the first in the
             // list)
-            selectedService = subscribers.poll(); // In this implementation, we chose the first microservice
+            selectedService = subscribers.poll(); // chose the first microservice
             if (selectedService != null) {
                 subscribers.add(selectedService); // Move it to the end of the queue
             }
@@ -123,24 +123,10 @@ public class MessageBusImpl implements MessageBus {
             microServiceQueues.get(selectedService).put(e); // Add the event to the queue
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt(); // Restore the interrupt status
-            ex.printStackTrace(); // Handle InterruptedException
         }
 
         // Return the Future of the event
         return future;
-    }
-
-    @Override
-    public void unregister(MicroService m) {
-        microServiceQueues.remove(m);
-        for (Queue<MicroService> subscribers : eventSubscribers.values()) {
-            synchronized (subscribers) {
-                subscribers.remove(m);
-            }
-        }
-        for (List<MicroService> subscribers : broadcastSubscribers.values()) {
-            subscribers.remove(m);
-        }
     }
 
     @Override
@@ -159,58 +145,63 @@ public class MessageBusImpl implements MessageBus {
         return microServiceQueues;
     }
 
-    // -------------------------------פונקציות עזר
-    // לטסטים----------------------------------------
-    // פונקציה 1: בודקת אם המיקרו-שירות רשום
-    public boolean isRegistered(MicroService micro) {
-        return microServiceQueues.containsKey(micro);
+    @Override
+    public void register(MicroService m) {
+        microServiceQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
+        System.out.println("Registered MicroService: " + m.getName());
     }
 
-    // פונקציה 2: מחזירה את מספר המיקרו-שירותים הרשומים
+    @Override
+    public void unregister(MicroService m) {
+        if (microServiceQueues.containsKey(m)) {
+            microServiceQueues.remove(m);
+            for (Queue<MicroService> subscribers : eventSubscribers.values()) {
+                synchronized (subscribers) {
+                    subscribers.remove(m);
+                }
+            }
+            for (List<MicroService> subscribers : broadcastSubscribers.values()) {
+                synchronized (subscribers) {
+                    subscribers.remove(m);
+                }
+            }
+            System.out.println("Unregistered MicroService: " + m.getName());
+        }
+    }
+    // functions for testing
+
+    // Checks if the given microservice is registered in the MessageBus
+    public boolean isRegistered(MicroService m) {
+        return microServiceQueues.containsKey(m);
+    }
+
+    // Returns the number of currently registered microservices
     public int getNumberOfRegisters() {
         return microServiceQueues.size();
     }
 
-    // פונקציה 3: בודקת אם המיקרו-שירות מנוי לאירוע מסוג Broadcast
-    public boolean isSubscribedToBroad(Class<? extends Broadcast> type, MicroService listener) {
+    // Checks if the given microservice is subscribed to a specific Broadcast type
+    public boolean isSubscribedToBroad(Class<? extends Broadcast> type, MicroService m) {
         List<MicroService> subscribers = broadcastSubscribers.get(type);
-        return subscribers != null && subscribers.contains(listener);
+        return subscribers != null && subscribers.contains(m);
     }
 
-    // פונקציה 4: מחזירה את מספר המנויים לאירוע מסוג Broadcast
+    // Returns the number of subscribers to a specific Broadcast type
     public int getNumberOfSubscribersToBroad(Class<? extends Broadcast> type) {
         List<MicroService> subscribers = broadcastSubscribers.get(type);
-        if (subscribers == null) {
-            return 0;
-        } else {
-            return subscribers.size();
-        }
+        return subscribers == null ? 0 : subscribers.size();
     }
 
-    // פונקציה 5: בודקת אם המיקרו-שירות מנוי לאירוע מסוג Event
-    public boolean isSubscribedToEvent(Class<? extends Event<?>> type, MicroService listener) {
+    // Checks if the given microservice is subscribed to a specific Event type
+    public boolean isSubscribedToEvent(Class<? extends Event<?>> type, MicroService m) {
         Queue<MicroService> subscribers = eventSubscribers.get(type);
-        return subscribers != null && subscribers.contains(listener);
+        return subscribers != null && subscribers.contains(m);
     }
 
-    // פונקציה 6: מחזירה את מספר המנויים לאירוע מסוג Event
+    // Returns the number of subscribers to a specific Event type
     public int getNumberOfSubscribersToEvent(Class<? extends Event<?>> type) {
-        Queue<MicroService> subscribers = eventSubscribers.get(type); // Corrected to eventSubscribers
-        if (subscribers == null) {
-            return 0;
-        } else {
-            return subscribers.size();
-        }
-    }
-
-    // פונקציה 7
-    public int getQueueSize(MicroService m) {
-        BlockingQueue<Message> queue = microServiceQueues.get(m);
-        if (queue == null) {
-            return 0;
-        } else {
-            return queue.size();
-        }
+        Queue<MicroService> subscribers = eventSubscribers.get(type);
+        return subscribers == null ? 0 : subscribers.size();
     }
 
 }

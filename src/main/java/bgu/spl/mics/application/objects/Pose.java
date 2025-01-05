@@ -5,9 +5,9 @@ package bgu.spl.mics.application.objects;
  * Includes x, y coordinates and the yaw angle relative to a global coordinate
  * system.
  */
+// pose class
 public class Pose {
 
-    // Fields
     private int time;
     private float x;
     private float y;
@@ -19,6 +19,11 @@ public class Pose {
         this.x = x;
         this.y = y;
         this.yaw = yaw;
+    }
+
+    // Getters
+    public int getTime() {
+        return time;
     }
 
     public float getX() {
@@ -33,13 +38,8 @@ public class Pose {
         return yaw;
     }
 
-    public int getTime() {
-        return time;
-    }
-
-    // Override the toString method for a string representation of the Pose
     @Override
     public String toString() {
-        return "Pose{x=" + x + ", y=" + y + ", yaw=" + yaw + ", time=" + time + "}";
+        return String.format("{\"time\":%d,\"x\":%.2f,\"y\":%.2f,\"yaw\":%.2f}", time, x, y, yaw);
     }
 }

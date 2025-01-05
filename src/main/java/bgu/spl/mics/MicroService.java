@@ -3,7 +3,6 @@ package bgu.spl.mics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
  * The MicroService is an abstract class that any micro-service in the system
  * must extend. The abstract MicroService class is responsible to get and
@@ -11,7 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Derived classes of MicroService should never directly touch the message-bus.
  * Instead, they have a set of internal protected wrapping methods (e.g.,
- * {@link #sendBroadcast(bgu.spl.mics.Broadcast)}, {@link #sendBroadcast(bgu.spl.mics.Broadcast)},
+ * {@link #sendBroadcast(bgu.spl.mics.Broadcast)},
+ * {@link #sendBroadcast(bgu.spl.mics.Broadcast)},
  * etc.) they can use. When subscribing to message-types,
  * the derived class also supplies a {@link Callback} that should be called when
  * a message of the subscribed type was taken from the micro-service
@@ -23,13 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  */
 public abstract class MicroService implements Runnable {
-
     private boolean terminated = false;
     private final String name;
     private final MessageBus messageBus = MessageBusImpl.getInstance();
     private final Map<Class<? extends Message>, Callback<?>> callbacks = new ConcurrentHashMap<>();
-
-
 
     /**
      * @param name the micro-service name (used mainly for debugging purposes -
@@ -52,6 +49,7 @@ public abstract class MicroService implements Runnable {
      * {@link Callback#call(java.lang.Object)} by calling
      * {@code callback.call(m)}.
      * <p>
+     * 
      * @param <E>      The type of event to subscribe to.
      * @param <T>      The type of result expected for the subscribed event.
      * @param type     The {@link Class} representing the type of event to
@@ -78,6 +76,7 @@ public abstract class MicroService implements Runnable {
      * {@link Callback#call(java.lang.Object)} by calling
      * {@code callback.call(m)}.
      * <p>
+     * 
      * @param <B>      The type of broadcast message to subscribe to
      * @param type     The {@link Class} representing the type of broadcast
      *                 message to subscribe to.
@@ -91,25 +90,30 @@ public abstract class MicroService implements Runnable {
     }
 
     /**
-     * Sends the event {@code e} using the message-bus and receive a {@link Future<T>}
-     * object that may be resolved to hold a result. This method must be Non-Blocking since
+     * Sends the event {@code e} using the message-bus and receive a
+     * {@link Future<T>}
+     * object that may be resolved to hold a result. This method must be
+     * Non-Blocking since
      * there may be events which do not require any response and resolving.
      * <p>
-     * @param <T>       The type of the expected result of the request
-     *                  {@code e}
-     * @param e         The event to send
-     * @return  		{@link Future<T>} object that may be resolved later by a different
-     *         			micro-service processing this event.
-     * 	       			null in case no micro-service has subscribed to {@code e.getClass()}.
+     * 
+     * @param <T> The type of the expected result of the request
+     *            {@code e}
+     * @param e   The event to send
+     * @return {@link Future<T>} object that may be resolved later by a different
+     *         micro-service processing this event.
+     *         null in case no micro-service has subscribed to {@code e.getClass()}.
      */
     protected final <T> Future<T> sendEvent(Event<T> e) {
         return messageBus.sendEvent(e);
     }
 
     /**
-     * A Micro-Service calls this method in order to send the broadcast message {@code b} using the message-bus
+     * A Micro-Service calls this method in order to send the broadcast message
+     * {@code b} using the message-bus
      * to all the services subscribed to it.
      * <p>
+     * 
      * @param b The broadcast message to send
      */
     protected final void sendBroadcast(Broadcast b) {
@@ -120,6 +124,7 @@ public abstract class MicroService implements Runnable {
      * Completes the received request {@code e} with the result {@code result}
      * using the message-bus.
      * <p>
+     * 
      * @param <T>    The type of the expected result of the processed event
      *               {@code e}.
      * @param e      The event to complete.
@@ -133,7 +138,7 @@ public abstract class MicroService implements Runnable {
     /**
      * this method is called once when the event loop starts.
      */
-    protected abstract void initialize();//we need to override
+    protected abstract void initialize();// we need to override
 
     /**
      * Signals the event loop that it must terminate after handling the current
@@ -141,8 +146,6 @@ public abstract class MicroService implements Runnable {
      */
     protected final void terminate() {
         this.terminated = true;
-        messageBus.unregister(this);
-        //לראות אם יש עוד משהו שצריך לעשות 
     }
 
     /**
@@ -164,17 +167,21 @@ public abstract class MicroService implements Runnable {
         initialize();
         while (!terminated) {
             try {
-                // Wait for a message
-                Message message = messageBus.awaitMessage(this);
-                // Find and execute the appropriate callback
-                Callback<Message> callback = (Callback<Message>) callbacks.get(message.getClass());
+                Message message = messageBus.awaitMessage(this);// Wait for a message
+                Callback<Message> callback = (Callback<Message>) callbacks.get(message.getClass());// Find and execute
+                                                                                                   // the appropriate
+                                                                                                   // callback
                 callback.call(message);
             } catch (InterruptedException e) {
                 terminate();
             }
         }
+        System.out.println(getName() + " finished run");
         messageBus.unregister(this);
 
     }
 
+    public boolean isterminated() {
+        return terminated;
+    }
 }

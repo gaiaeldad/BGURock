@@ -7,11 +7,11 @@ import java.util.List;
  * Represents a landmark in the environment map.
  * Landmarks are identified and updated by the FusionSlam service.
  */
+// landmark class
 public class LandMark {
-    // Fields
-    private String id;  // The internal ID of the landmark
-    private String description;  // Description of the landmark
-    private List<CloudPoint> coordinates;  // List of coordinates representing the landmark
+    private String id; // The ID of the landmark
+    private String description; // Description of the landmark
+    private List<CloudPoint> coordinates; // List of coordinates representing the landmark
 
     // Constructor to initialize the LandMark object
     public LandMark(String id, String description, List<CloudPoint> coordinates) {
@@ -21,56 +21,34 @@ public class LandMark {
     }
 
     // Getters and Setters
+    // Get the description of the landmark
+    public String getDescription() {
+        return description;
+    }
 
     // Get the ID of the landmark
     public String getId() {
         return id;
     }
 
-    // Get the description of the landmark
-    public String getDescription() {
-        return description;
+    // Set the coordinates of the landmark
+    public void setCoordinates(List<CloudPoint> coordinates) {
+        this.coordinates = new ArrayList<>(coordinates);
     }
 
     // Get the coordinates of the landmark
     public List<CloudPoint> getCoordinates() {
         return coordinates;
     }
-    
+
     // Add a CloudPoint to the list of coordinates
     public void addCoordinate(CloudPoint coordinate) {
         this.coordinates.add(coordinate);
-        StatisticalFolder.getInstance().updateNumLandmarks(1);  // מעדכן את מספר ה-landmarks במערכת.
+        StatisticalFolder.getInstance().updateNumLandmarks(1); // Update the number of landmarks in stsistics
     }
 
-    public void setCoordinates(List<CloudPoint> coordinates) {
-        this.coordinates = new ArrayList<>(coordinates); // יצירת עותק
-    }
-
-
-    // Optional: Override toString() to provide a string representation of the landmark
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("LandMark{id='").append(id)
-          .append("', description='").append(description)
-          .append("', coordinates=");
-        
-        // Print all coordinates
-        for (CloudPoint point : coordinates) {
-            sb.append(point).append(", ");
-        }
-        sb.append("}");
-        return sb.toString();
+        return String.format("{\"id\":\"%s\",\"description\":\"%s\",\"coordinates\":%s}", id, description, coordinates);
     }
-/* 
-    public void setId(String id) {
-        this.id = id;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-*/
-
 }
