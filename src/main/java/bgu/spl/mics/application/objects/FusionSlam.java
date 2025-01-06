@@ -359,5 +359,18 @@ public class FusionSlam {
     public int getTick() {
         return tick;
     }
+    // we added this for testing
+
+    public void addLandmark(LandMark landmark) {
+        landmarks.add(landmark);
+    }
+
+    public List<LandMark> getLandmarksMod() {
+        return new ArrayList<>(landmarks);
+    }
+
+    public void clearLandmarks() {
+        landmarks.clear();
+    }
 
 }

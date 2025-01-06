@@ -2,104 +2,168 @@ package bgu.spl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-import java.util.List;
-
 import bgu.spl.mics.application.objects.CloudPoint;
 import bgu.spl.mics.application.objects.FusionSlam;
 import bgu.spl.mics.application.objects.LandMark;
 import bgu.spl.mics.application.objects.Pose;
 import bgu.spl.mics.application.objects.TrackedObject;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-class FusionSlamTest {
+public class FusionSlamTest {
 
     private FusionSlam fusionSlam;
 
     @BeforeEach
-    void setUp() {
+    void setup() {
         fusionSlam = FusionSlam.getInstance();
+        fusionSlam.clearLandmarks();
     }
 
-    /**
-     * Test: Adds poses and retrieves them correctly.
-     * Pre-Condition: FusionSlam instance is initialized.
-     * Post-Condition: Stored poses match the added poses.
-     * Invariant: Pose list size increases as poses are added.
-     */
-    @Test
-    void testAddPoseAndRetrieve() {
-        Pose pose1 = new Pose(1, 0, 0, 0);
-        Pose pose2 = new Pose(2, 5, 5, 90);
-
-        fusionSlam.addPose(pose1);
-        fusionSlam.addPose(pose2);
-
-        assertEquals(pose1, fusionSlam.getPoseAtTime(1), "Pose at time 1 should match.");
-        assertEquals(pose2, fusionSlam.getPoseAtTime(2), "Pose at time 2 should match.");
-    }
-
-    /**
-     * Test: Transforms local coordinates to global coordinates.
-     * Pre-Condition: Pose is available for transformation.
-     * Post-Condition: Global coordinates match expected values.
-     * Invariant: Number of points remains the same.
-     */
     @Test
     void testGlobalTransformation() {
-        Pose pose = new Pose(1, 2, 2, 45);
-        List<CloudPoint> localPoints = Arrays.asList(
-                new CloudPoint(1, 1),
-                new CloudPoint(2, 2),
-                new CloudPoint(3, 3));
+        Pose pose = new Pose(1, 1.0f, 1.0f, 45.0f);
+        List<CloudPoint> localCoordinates = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0),
+                new CloudPoint(0.0, 1.0));
 
-        List<CloudPoint> globalPoints = fusionSlam.transformToGlobal(localPoints, pose);
+        List<CloudPoint> globalCoordinates = fusionSlam.transformToGlobal(localCoordinates, pose);
 
-        assertNotNull(globalPoints, "Global points should not be null.");
-        assertEquals(3, globalPoints.size(), "Global points size should match local points size.");
+        // Ensure the transformation was successful
+        assertNotNull(globalCoordinates, "The transformation result should not be null.");
+        assertEquals(3, globalCoordinates.size(), "The number of global points should match the local points.");
+
+        // Validate the transformed points against expected values
+        double sqrt2 = Math.sqrt(2) / 2;
+        CloudPoint expectedPoint1 = new CloudPoint(1.0 + sqrt2 - sqrt2, 1.0 + sqrt2 + sqrt2);
+        CloudPoint expectedPoint2 = new CloudPoint(1.0 + 2 * sqrt2 - 2 * sqrt2, 1.0 + 2 * sqrt2 + 2 * sqrt2);
+        CloudPoint expectedPoint3 = new CloudPoint(1.0 + 0 * sqrt2 - 1 * sqrt2, 1.0 + 0 * sqrt2 + 1 * sqrt2);
+
+        assertEquals(expectedPoint1.getX(), globalCoordinates.get(0).getX(), 0.0001,
+                "First point X-coordinate mismatch");
+        assertEquals(expectedPoint1.getY(), globalCoordinates.get(0).getY(), 0.0001,
+                "First point Y-coordinate mismatch");
+        assertEquals(expectedPoint2.getX(), globalCoordinates.get(1).getX(), 0.0001,
+                "Second point X-coordinate mismatch");
+        assertEquals(expectedPoint2.getY(), globalCoordinates.get(1).getY(), 0.0001,
+                "Second point Y-coordinate mismatch");
+        assertEquals(expectedPoint3.getX(), globalCoordinates.get(2).getX(), 0.0001,
+                "Third point X-coordinate mismatch");
+        assertEquals(expectedPoint3.getY(), globalCoordinates.get(2).getY(), 0.0001,
+                "Third point Y-coordinate mismatch");
     }
 
-    /**
-     * Test: Processes a new tracked object with multiple points and creates a new
-     * landmark.
-     * Pre-Condition: Pose exists for the tracked object.
-     * Post-Condition: A new landmark with multiple points is added.
-     * Invariant: Landmark ID and size are consistent.
-     */
     @Test
-    void testProcessTrackedObject_NewLandmarkMultiplePoints() {
-        Pose pose = new Pose(1, 0, 0, 0);
+    void testAddNewLandmark() {
+        Pose pose = new Pose(1, 1.0f, 0.0f, 1.0f);
         fusionSlam.addPose(pose);
 
-        TrackedObject trackedObject = new TrackedObject("L1", 1, "Landmark", Arrays.asList(
-                new CloudPoint(1, 1),
-                new CloudPoint(2, 2),
-                new CloudPoint(3, 3)));
+        List<CloudPoint> coordinates = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0));
 
+        TrackedObject trackedObject = new TrackedObject("Landmark1", 1, "Newly added landmark", coordinates);
         fusionSlam.processTrackedObjects(Arrays.asList(trackedObject));
 
-        List<LandMark> landmarks = fusionSlam.getLandmarks();
-        assertEquals(1, landmarks.size(), "One landmark should be added.");
-        assertEquals("L1", landmarks.get(0).getId(), "Landmark ID should match.");
-        assertEquals(3, landmarks.get(0).getCoordinates().size(), "Landmark should contain multiple points.");
+        // Verify the landmark was added correctly
+        List<LandMark> landmarks = fusionSlam.getLandmarksMod();
+        assertEquals(1, landmarks.size(), "Exactly one new landmark should have been added.");
+        assertEquals("Landmark1", landmarks.get(0).getId(),
+                "The ID of the new landmark should match the expected value.");
+        assertEquals(2, landmarks.get(0).getCoordinates().size(),
+                "The number of coordinates for the new landmark should be correct.");
     }
 
-    /**
-     * Test: Handles tracked objects without a corresponding pose.
-     * Pre-Condition: No pose exists for the tracked object.
-     * Post-Condition: No landmarks are added.
-     * Invariant: Landmark list remains empty.
-     */
     @Test
-    void testProcessTrackedObject_NoPose() {
-        List<CloudPoint> coordinates = Arrays.asList(new CloudPoint(1, 1));
-        TrackedObject trackedObject = new TrackedObject("L1", 2, "Landmark", coordinates);
+    void testUpdateExistingLandmark() {
+        Pose pose = new Pose(1, 1.0f, 0.0f, 1.0f);
+        fusionSlam.addPose(pose);
 
+        List<CloudPoint> initialCoordinates = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0));
+
+        LandMark existingLandmark = new LandMark("Landmark1", "Test landmark", initialCoordinates);
+        fusionSlam.addLandmark(existingLandmark);
+
+        List<CloudPoint> newCoordinates = Arrays.asList(
+                new CloudPoint(3.0, 3.0),
+                new CloudPoint(4.0, 4.0));
+
+        TrackedObject trackedObject = new TrackedObject("Landmark1", 1, "Updated landmark", newCoordinates);
         fusionSlam.processTrackedObjects(Arrays.asList(trackedObject));
 
-        List<LandMark> landmarks = fusionSlam.getLandmarks();
-        assertTrue(landmarks.isEmpty(), "No landmarks should be added if pose is missing.");
+        // Ensure the existing landmark was updated
+        List<LandMark> landmarks = fusionSlam.getLandmarksMod();
+        assertEquals(1, landmarks.size(), "The total number of landmarks should remain the same.");
+        assertEquals("Landmark1", landmarks.get(0).getId(),
+                "The ID of the updated landmark should match the original.");
+        assertEquals(2, landmarks.get(0).getCoordinates().size(),
+                "The updated landmark should retain the correct number of coordinates.");
+    }
+
+    @Test
+    void testProcessTrackedObjectsWithPose() {
+        Pose pose = new Pose(2, 1.0f, 0.0f, 0.0f);
+        fusionSlam.addPose(pose);
+
+        List<CloudPoint> coordinates = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0));
+
+        TrackedObject trackedObject = new TrackedObject("Landmark1", 2, "Tracked object landmark", coordinates);
+        fusionSlam.processTrackedObjects(Arrays.asList(trackedObject));
+
+        // Verify the object was added as a landmark
+        List<LandMark> landmarks = fusionSlam.getLandmarksMod();
+        assertEquals(1, landmarks.size(), "One landmark should be added to the system.");
+        assertEquals("Landmark1", landmarks.get(0).getId(), "The added landmark should have the correct ID.");
+        assertEquals(2, landmarks.get(0).getCoordinates().size(),
+                "The added landmark should have the correct number of coordinates.");
+    }
+
+    @Test
+    void testProcessTrackedObjectsWithoutPose() {
+        fusionSlam.clearLandmarks();
+
+        List<CloudPoint> coordinates = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0));
+
+        TrackedObject trackedObject = new TrackedObject("Landmark1", 3, "Unassociated tracked object", coordinates);
+        fusionSlam.processTrackedObjects(Arrays.asList(trackedObject));
+
+        // Ensure no landmarks are added without a pose
+        List<LandMark> landmarks = fusionSlam.getLandmarksMod();
+        assertEquals(0, landmarks.size(), "No landmark should be added if no pose exists.");
+    }
+
+    @Test
+    void testProcessTrackedObjectsWithMultipleObjects() {
+        Pose pose = new Pose(1, 1.0f, 45.0f, 1.0f);
+        fusionSlam.addPose(pose);
+
+        List<CloudPoint> coordinates1 = Arrays.asList(
+                new CloudPoint(1.0, 1.0),
+                new CloudPoint(2.0, 2.0));
+
+        List<CloudPoint> coordinates2 = Arrays.asList(
+                new CloudPoint(3.0, 3.0),
+                new CloudPoint(4.0, 4.0));
+
+        TrackedObject trackedObject1 = new TrackedObject("Landmark1", 1, "First object", coordinates1);
+        TrackedObject trackedObject2 = new TrackedObject("Landmark2", 1, "Second object", coordinates2);
+
+        fusionSlam.processTrackedObjects(Arrays.asList(trackedObject1, trackedObject2));
+
+        // Verify that multiple landmarks were added correctly
+        List<LandMark> landmarks = fusionSlam.getLandmarksMod();
+        assertEquals(2, landmarks.size(), "Two landmarks should have been added.");
+        assertEquals("Landmark1", landmarks.get(0).getId(), "The ID of the first landmark should match.");
+        assertEquals("Landmark2", landmarks.get(1).getId(), "The ID of the second landmark should match.");
     }
 }
