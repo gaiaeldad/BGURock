@@ -6,17 +6,7 @@ import bgu.spl.mics.example.messages.ExampleEvent;
 import bgu.spl.mics.example.services.ExampleBroadcastListenerService;
 import bgu.spl.mics.example.services.ExampleEventHandlerService;
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 class MessageBusImplTest {
 

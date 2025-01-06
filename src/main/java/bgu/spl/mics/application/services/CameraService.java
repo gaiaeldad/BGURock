@@ -63,6 +63,8 @@ public class CameraService extends MicroService {
                                 + event.getStampedDetectedObjects().getTime());
                         StatisticalFolder.getInstance().updateNumDetectedObjects(
                                 readyEvent.getStampedDetectedObjects().getDetectedObjects().size());
+                        StatisticalFolder.getInstance().updateLastFrame(getName(), readyEvent);
+
                     }
                 }
                 if (camera.getStatus() == STATUS.DOWN) {

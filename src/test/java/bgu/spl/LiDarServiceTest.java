@@ -7,6 +7,7 @@ import bgu.spl.mics.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+//import bgu.spl.mics.application.services.MicroService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,8 @@ class LiDarServiceTest {
     void setUp() {
         // Pre-Condition: LiDAR worker tracker is initialized with valid ID and
         // frequency.
-        mockTracker = new LiDarWorkerTracker(1, 5, "testFilePath"); // ID = 1, frequency = 5
+        int maxTime = 30;
+        mockTracker = new LiDarWorkerTracker(1, 5, "testFilePath", maxTime); // ID = 1, frequency = 5
         lidarService = new LiDarService("LiDarServiceTest", mockTracker);
         eventQueue = new PriorityQueue<>((a, b) -> Integer.compare(a.getTime(), b.getTime()));
     }

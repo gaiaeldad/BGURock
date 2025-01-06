@@ -21,16 +21,6 @@ public class LiDarWorkerTracker {
 
     // Constructor to initialize the LiDarWorkerTracker object.
 
-    // -------------chack if okay to delete this constructor----------------
-    // public LiDarWorkerTracker(int id, int frequency, String lidarDataFilePath) {
-    // this.id = id;
-    // this.frequency = frequency;
-    // this.status = STATUS.UP;
-    // this.lastTrackedObjects = new ArrayList<>();
-    // this.liDarDataBase = LiDarDataBase.getInstance(lidarDataFilePath);
-    // this.maxTime = calculateMaxTime();
-    // }
-
     public LiDarWorkerTracker(int id, int frequency, String lidarDataFilePath, int maxTime) {
         this.id = id;
         this.frequency = frequency;

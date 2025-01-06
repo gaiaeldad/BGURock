@@ -181,7 +181,7 @@ public abstract class MicroService implements Runnable {
 
     }
 
-    public boolean isterminated() {
+    public boolean isTerminated() {
         return terminated;
     }
 }

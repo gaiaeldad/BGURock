@@ -47,7 +47,7 @@ public class TimeService extends MicroService {
         subscribeBroadcast(TickBroadcast.class, (TickBroadcast broadcast) -> {
             int currentTick = broadcast.getTime();
 
-            if (currentTick < duration && !FusionSlam.getInstance().isTerminated() && !isterminated()) {
+            if (currentTick < duration && !FusionSlam.getInstance().isTerminated() && !isTerminated()) {
                 try {
                     Thread.sleep(tickTime * 1000L);
                     sendBroadcast(new TickBroadcast(currentTick + 1, duration));

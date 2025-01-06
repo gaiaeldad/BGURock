@@ -1,3 +1,4 @@
+// Note this an example for an output error.
 {"error":"Camera disconnected",
   "faultySensor":"Camera1",
   "lastCamerasFrame":{
