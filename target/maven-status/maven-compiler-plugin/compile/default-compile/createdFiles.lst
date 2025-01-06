@@ -17,6 +17,7 @@ bgu\spl\mics\MessageBusImpl.class
 bgu\spl\mics\application\objects\TrackedObject.class
 bgu\spl\mics\application\objects\LiDarWorkerTracker.class
 bgu\spl\mics\MessageBusImpl$SingletonHolderMessageBusImpl.class
+bgu\spl\mics\application\messages\TerminateSensor.class
 bgu\spl\mics\application\messages\PoseEvent.class
 bgu\spl\mics\application\objects\LiDarDataBase$1.class
 bgu\spl\mics\application\objects\FusionSlam$SingletonHolderFusionSlam.class
