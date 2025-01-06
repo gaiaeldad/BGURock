@@ -26,6 +26,15 @@ public class MessageBusImpl implements MessageBus {
         return SingletonHolderMessageBusImpl.INSTANCE;
     }
 
+    /**
+     * Subscribes a microservice to a broadcast type.
+     * 
+     * Precondition: The microservice must be registered with the message bus.
+     * Postcondition: The microservice is added to the subscriber list of the
+     * specified broadcast type.
+     * Invariant: Each microservice is subscribed to a broadcast type at most once.
+     */
+
     @Override
     public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
         broadcastSubscribers.putIfAbsent(type, new CopyOnWriteArrayList<>());
@@ -37,6 +46,15 @@ public class MessageBusImpl implements MessageBus {
             }
         }
     }
+
+    /**
+     * Subscribes a microservice to an event type.
+     * 
+     * Precondition: The microservice must be registered with the message bus.
+     * Postcondition: The microservice is added to the subscriber queue of the
+     * specified event type.
+     * Invariant: Each microservice is subscribed to an event type at most once.
+     */
 
     @Override
     public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
@@ -51,9 +69,15 @@ public class MessageBusImpl implements MessageBus {
     }
 
     /**
-     * Updates the Future of the event when it receives the result of execution.
-     * Uses the sent data to resolve the corresponding Future.
+     * Completes an event by resolving its future.
+     * 
+     * Precondition: The event must have been previously sent and its future must
+     * exist in the map.
+     * Postcondition: The future associated with the event is resolved, and the
+     * event is removed from the map.
+     * Invariant: Each event is completed exactly once.
      */
+
     @Override
     public <T> void complete(Event<T> e, T result) {
         @SuppressWarnings("unchecked")
@@ -63,6 +87,16 @@ public class MessageBusImpl implements MessageBus {
             eventFutures.remove(e);
         }
     }
+
+    /**
+     * Sends a broadcast to all subscribed microservices.
+     * 
+     * Precondition: The broadcast must not be null.
+     * Postcondition: The broadcast is added to the queues of all subscribed
+     * microservices.
+     * Invariant: All registered subscribers to the broadcast type receive the
+     * message.
+     */
 
     @Override
     public void sendBroadcast(Broadcast b) {
@@ -92,9 +126,12 @@ public class MessageBusImpl implements MessageBus {
     }
 
     /**
-     * Sends an event to a subscribed microservice (if there is a subscriber).
-     * If there are subscribers, the event is sent according to the round-robin
-     * principle (default: the first microservice).
+     * Sends an event to one of the subscribed microservices.
+     * 
+     * Precondition: The event must not be null.
+     * Postcondition: The event is added to the queue of a subscribed microservice,
+     * and a Future is returned.
+     * Invariant: Events are distributed to subscribers in a round-robin manner.
      */
     @Override
     public <T> Future<T> sendEvent(Event<T> e) {
@@ -129,6 +166,14 @@ public class MessageBusImpl implements MessageBus {
         return future;
     }
 
+    /**
+     * Waits for the next message for the specified microservice.
+     * 
+     * Precondition: The microservice must be registered with the message bus.
+     * Postcondition: The next message in the queue is returned.
+     * Invariant: The queue for the microservice remains in FIFO order.
+     */
+
     @Override
     public Message awaitMessage(MicroService m) throws InterruptedException {
         if (!microServiceQueues.containsKey(m)) {
@@ -145,11 +190,27 @@ public class MessageBusImpl implements MessageBus {
         return microServiceQueues;
     }
 
+    /**
+     * Registers a microservice with the message bus.
+     * 
+     * Precondition: The microservice must not already be registered.
+     * Postcondition: A new queue is created for the microservice.
+     * Invariant: Each microservice has a unique queue.
+     */
     @Override
     public void register(MicroService m) {
         microServiceQueues.putIfAbsent(m, new LinkedBlockingQueue<>());
         System.out.println("Registered MicroService: " + m.getName());
     }
+
+    /**
+     * Unregisters a microservice, removing all references to it.
+     * 
+     * Precondition: The microservice must be registered with the message bus.
+     * Postcondition: All references to the microservice are removed from the
+     * message bus.
+     * Invariant: The microservice is no longer part of any queues or maps.
+     */
 
     @Override
     public void unregister(MicroService m) {
@@ -168,40 +229,29 @@ public class MessageBusImpl implements MessageBus {
             System.out.println("Unregistered MicroService: " + m.getName());
         }
     }
-    // functions for testing
 
-    // Checks if the given microservice is registered in the MessageBus
+    // functions for testing
+    // // Checks if the given microservice is registered in the MessageBus
     public boolean isRegistered(MicroService m) {
         return microServiceQueues.containsKey(m);
     }
 
-    // Returns the number of currently registered microservices
+    // // Returns the number of currently registered microservices
     public int getNumberOfRegisters() {
         return microServiceQueues.size();
     }
 
-    // Checks if the given microservice is subscribed to a specific Broadcast type
+    // // Checks if the given microservice is subscribed to a specific Broadcast
+    // type
     public boolean isSubscribedToBroad(Class<? extends Broadcast> type, MicroService m) {
         List<MicroService> subscribers = broadcastSubscribers.get(type);
         return subscribers != null && subscribers.contains(m);
     }
 
-    // Returns the number of subscribers to a specific Broadcast type
-    public int getNumberOfSubscribersToBroad(Class<? extends Broadcast> type) {
-        List<MicroService> subscribers = broadcastSubscribers.get(type);
-        return subscribers == null ? 0 : subscribers.size();
-    }
-
-    // Checks if the given microservice is subscribed to a specific Event type
+    // // Checks if the given microservice is subscribed to a specific Event type
     public boolean isSubscribedToEvent(Class<? extends Event<?>> type, MicroService m) {
         Queue<MicroService> subscribers = eventSubscribers.get(type);
         return subscribers != null && subscribers.contains(m);
-    }
-
-    // Returns the number of subscribers to a specific Event type
-    public int getNumberOfSubscribersToEvent(Class<? extends Event<?>> type) {
-        Queue<MicroService> subscribers = eventSubscribers.get(type);
-        return subscribers == null ? 0 : subscribers.size();
     }
 
 }

@@ -112,10 +112,4 @@ public class LiDarWorkerTracker {
         return trackedObjectsToReturn;
     }
 
-    // -------------chack if okay to delete this method----------------
-
-    // private int calculateMaxTime() {
-    // return
-    // liDarDataBase.getCloudPoints().stream().mapToInt(StampedCloudPoints::getTime).max().orElse(0);
-    // }
 }

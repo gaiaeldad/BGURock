@@ -27,15 +27,6 @@ public class GPSIMU {
         this.poseList = poseList;
         this.maxTime = maxTime; // Calculate the maximum time
     }
-    // -------------chack if okay to delete this constructor----------------
-    // public GPSIMU(String filePath) {
-    // this.currTick = 0;
-    // this.status = STATUS.UP;
-    // this.poseList = loadPosesFromFile(filePath); // Load poses directly into the
-    // list
-    // this.maxTime = calculateMaxTime(); // after this time the status needs to be
-    // DOWN
-    // }
 
     public void setStatus(STATUS status) {
         this.status = status;
@@ -89,14 +80,7 @@ public class GPSIMU {
             return new ArrayList<>(); // Return an empty list in case of failure
         }
     }
-    //// -----------------chack if okay to delete this method----------------
 
-    // private int calculateMaxTime() {
-    // return poseList.stream().mapToInt(Pose::getTime).max().orElse(0);
-    // }
-
-    // Update the status to DOWN if the current time exceeds or equals the maximum
-    // time.
     public void updateStatusBasedOnTime() {
         if (currTick >= maxTime) {
             System.out.println("pose down because time is: " + getCurrentTick());
