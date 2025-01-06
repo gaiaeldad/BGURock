@@ -14,6 +14,10 @@ import com.google.gson.reflect.TypeToken;
 /**
  * Represents a camera sensor on the robot.
  * Responsible for detecting objects in the environment.
+ * Invariants:
+ * - detectedObjectsList is never null.
+ * - status is always one of the STATUS enum values (UP, DOWN, ERROR).
+ * - maxTime is non-negative.
  */
 public class Camera {
 
@@ -24,7 +28,22 @@ public class Camera {
     private int maxTime;
     private String errMString;
 
-    // Constructor to initialize the Camera object.
+    /**
+     * Constructs a Camera object with specified parameters.
+     * Preconditions:
+     * - id >= 0
+     * - frequency >= 0
+     * - maxTime >= 0
+     * - detectedObjectsList is not null
+     * Postconditions:
+     * - Camera object is initialized with given values.
+     * - Status is set to UP.
+     *
+     * @param id                  the unique identifier for the camera
+     * @param frequency           the frequency of operation
+     * @param detectedObjectsList the list of detected objects with timestamps
+     * @param maxTime             the maximum time allowed for data capture
+     */
 
     public Camera(int id, int frequency, List<StampedDetectedObject> detectedObjectsList, int maxTime) {
         this.id = id;
@@ -36,6 +55,22 @@ public class Camera {
         this.maxTime = maxTime;
         this.errMString = null;
     }
+
+    /**
+     * Constructs a Camera object by loading detected objects from a file.
+     * Preconditions:
+     * - id >= 0
+     * - frequency > 0
+     * - filePath and cameraKey are valid (non-null, non-empty).
+     * Postconditions:
+     * - Camera object is initialized with loaded data or empty list if an error
+     * occurs.
+     *
+     * @param id        the unique identifier for the camera
+     * @param frequency the frequency of operation
+     * @param filePath  path to the data file
+     * @param cameraKey key to access the specific camera data in the file
+     */
 
     public Camera(int id, int frequency, String filePath, String cameraKey) {
         this.id = id;
@@ -54,9 +89,28 @@ public class Camera {
         }
     }
 
+    /**
+     * Retrieves the list of detected objects.
+     * Postconditions:
+     * - Returns a non-null list of detected objects.
+     *
+     * @return the list of detected objects
+     */
     public List<StampedDetectedObject> getDetectedObjectsList() {
         return detectedObjectsList;
     }
+
+    /**
+     * Retrieves detected objects at a specific time.
+     * Preconditions:
+     * - time >= 0
+     * Postconditions:
+     * - Returns detected objects if available; null otherwise.
+     * - Updates status to ERROR if an error object is detected.
+     *
+     * @param time the time to query detected objects
+     * @return the detected objects at the specified time
+     */
 
     public StampedDetectedObject getDetectedObjectsAtTime(int time) {
         checkIfDone(time);
@@ -74,6 +128,19 @@ public class Camera {
         }
         return null;
     }
+
+    /**
+     * Loads detected objects from a specified file.
+     * Preconditions:
+     * - filePath and cameraKey are non-null and non-empty.
+     * Postconditions:
+     * - detectedObjectsList is updated based on the file data.
+     * - maxTime is set based on the maximum timestamp in the data.
+     * - If an error occurs, detectedObjectsList is set to an empty list.
+     *
+     * @param filePath  Path to the file containing detected objects.
+     * @param cameraKey Key for retrieving specific camera data.
+     */
 
     public void loadDetectedObjectsFromFile(String filePath, String cameraKey) {
         try (FileReader reader = new FileReader(filePath)) {
@@ -100,6 +167,16 @@ public class Camera {
             detectedObjectsList = new ArrayList<>();
         }
     }
+
+    /**
+     * Checks if the camera has exceeded its maximum operational time.
+     * Preconditions:
+     * - currentTime >= 0
+     * Postconditions:
+     * - Status is updated to DOWN if the time exceeds maxTime.
+     *
+     * @param currentTime the current time to check
+     */
 
     public void checkIfDone(int currentTime) {
         if (currentTime >= maxTime) {
