@@ -3,6 +3,7 @@ C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\applic
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\DetectObjectsEvent.java
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\PoseEvent.java
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\TerminatedBroadcast.java
+C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\TerminateSensor.java
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\TickBroadcast.java
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\messages\TrackedObjectsEvent.java
 C:\Users\gaia\OneDrive\Documente\study\splAss2\src\main\java\bgu\spl\mics\application\objects\Camera.java
